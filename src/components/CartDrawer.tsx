@@ -24,9 +24,30 @@ export default function CartDrawer() {
     return null;
   }
 
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
+    try {
+      // Save order to DB
+      await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cart: cart.map((item) => ({
+            id: item.id,
+            name: item.name,
+            price: item.price,
+            quantity: item.quantity,
+            ageGroup: item.ageGroup,
+          })),
+          customerName: "WhatsApp Customer",
+        }),
+      });
+    } catch (err) {
+      console.error("Failed to save order:", err);
+    }
+
+    // Open WhatsApp regardless
     const url = getWhatsAppCheckoutUrl(cart);
-    window.open(url, '_blank');
+    window.open(url, "_blank");
   };
 
   return (
@@ -78,7 +99,7 @@ export default function CartDrawer() {
                     <p className="text-xs text-text/60 mt-1">Age: {item.ageGroup}</p>
                   </div>
                   <div className="flex justify-between items-center mt-2">
-                    <p className="font-bold text-primary">₹{item.price}</p>
+                    <p className="font-bold text-primary">₹{item.price * item.quantity}</p>
                     <div className="flex items-center gap-2 bg-white rounded-full px-2 py-1 shadow-sm border border-secondary/20">
                       <button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="text-text hover:text-primary"><Minus size={14} /></button>
                       <span className="text-sm font-semibold w-4 text-center">{item.quantity}</span>

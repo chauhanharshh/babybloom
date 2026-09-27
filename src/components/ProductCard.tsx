@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { Plus, Minus } from "lucide-react";
+import { Plus, Minus, ImageOff } from "lucide-react";
 import { useCart, Product } from "@/context/CartContext";
+
+const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1519689680058-324335c77eba?auto=format&fit=crop&q=80&w=600";
 
 interface ProductCardProps {
   product: Product;
@@ -12,8 +14,14 @@ interface ProductCardProps {
 export default function ProductCard({ product }: ProductCardProps) {
   const { cart, addToCart, updateQuantity } = useCart();
   const [isHovered, setIsHovered] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
   const cartItem = cart.find(item => item.id === product.id);
+
+  // blob: URLs are temporary and break on reload — treat as no image
+  const isBlobUrl = product.imageUrl?.startsWith("blob:");
+  const showFallback = imgError || isBlobUrl || !product.imageUrl;
+  const imageSrc = showFallback ? FALLBACK_IMAGE : product.imageUrl;
 
   return (
     <div 
@@ -21,10 +29,11 @@ export default function ProductCard({ product }: ProductCardProps) {
     >
       <div className="relative aspect-square mb-4 rounded-2xl overflow-hidden bg-background">
         <Image
-          src={product.imageUrl}
+          src={imageSrc!}
           alt={product.name}
           fill
           className="object-cover transition-transform duration-500 md:group-hover:scale-105 scale-100"
+          onError={() => setImgError(true)}
         />
         <div className="absolute top-2 right-2 bg-white/80 backdrop-blur-sm px-2 py-1 rounded-full text-xs font-semibold text-primary">
           {product.ageGroup}
@@ -37,7 +46,7 @@ export default function ProductCard({ product }: ProductCardProps) {
       </div>
 
       {cartItem ? (
-        <div className="absolute bottom-4 right-4 z-10 flex items-center bg-white border-2 border-primary rounded-full shadow-md transition-all duration-300 opacity-100 translate-y-0 md:opacity-0 md:translate-y-4 md:group-hover:opacity-100 md:group-hover:translate-y-0">
+        <div className="absolute bottom-4 right-4 z-10 flex items-center bg-white border-2 border-primary rounded-full shadow-md transition-all duration-300">
           <button 
             type="button"
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); updateQuantity(product.id, cartItem.quantity - 1); }}
@@ -59,7 +68,7 @@ export default function ProductCard({ product }: ProductCardProps) {
       ) : (
         <button
           onClick={(e) => { e.stopPropagation(); addToCart(product); }}
-          className="absolute bottom-4 right-4 bg-primary text-white p-3 rounded-full shadow-md transition-all duration-300 hover:bg-primary/90 hover:scale-110 active:scale-95 opacity-100 translate-y-0 md:opacity-0 md:translate-y-4 md:group-hover:opacity-100 md:group-hover:translate-y-0"
+          className="absolute bottom-4 right-4 bg-primary text-white p-3 rounded-full shadow-md transition-all duration-300 hover:bg-primary/90 hover:scale-110 active:scale-95"
         >
           <Plus size={20} />
         </button>
@@ -67,3 +76,4 @@ export default function ProductCard({ product }: ProductCardProps) {
     </div>
   );
 }
+

@@ -2,69 +2,17 @@ import Navbar from "@/components/Navbar";
 import ProductCard from "@/components/ProductCard";
 import CartDrawer from "@/components/CartDrawer";
 import Footer from "@/components/Footer";
-import { Product } from "@/context/CartContext";
 import Image from "next/image";
+import prisma from "@/lib/prisma";
+import Link from "next/link";
 
-const products: Product[] = [
-  {
-    id: "1",
-    name: "Floral Summer Dress with Bow",
-    price: 899,
-    imageUrl: "https://images.unsplash.com/photo-1519689680058-324335c77eba?auto=format&fit=crop&w=800&q=80",
-    ageGroup: "2-3 Yrs"
-  },
-  {
-    id: "2",
-    name: "Classic Boy Suspenders Set",
-    price: 1299,
-    imageUrl: "https://images.unsplash.com/photo-1522771930-78848d9293e8?auto=format&fit=crop&w=800&q=80",
-    ageGroup: "3-4 Yrs"
-  },
-  {
-    id: "3",
-    name: "Knitted Bear Sweater",
-    price: 1499,
-    imageUrl: "https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?auto=format&fit=crop&w=800&q=80",
-    ageGroup: "1-2 Yrs"
-  },
-  {
-    id: "4",
-    name: "Pink Ruffle Romper",
-    price: 799,
-    imageUrl: "https://images.unsplash.com/photo-1503919005314-30d93d07d823?auto=format&fit=crop&w=800&q=80",
-    ageGroup: "4-5 Yrs"
-  },
-  {
-    id: "5",
-    name: "Cozy Winter Onesie",
-    price: 1199,
-    imageUrl: "https://images.unsplash.com/photo-1506506200949-df8734e62235?auto=format&fit=crop&w=800&q=80",
-    ageGroup: "0-1 Yrs"
-  },
-  {
-    id: "6",
-    name: "Denim Overalls",
-    price: 999,
-    imageUrl: "https://images.unsplash.com/photo-1622290291468-a28f7a7dc6a8?auto=format&fit=crop&w=800&q=80",
-    ageGroup: "2-3 Yrs"
-  },
-  {
-    id: "7",
-    name: "Striped Cotton Tee",
-    price: 499,
-    imageUrl: "https://images.unsplash.com/photo-1611082522692-f0477e641793?auto=format&fit=crop&w=800&q=80",
-    ageGroup: "5-6 Yrs"
-  },
-  {
-    id: "8",
-    name: "Cute Bunny Hoodie",
-    price: 1399,
-    imageUrl: "https://images.unsplash.com/photo-1621217595304-47b85d38c64c?auto=format&fit=crop&w=800&q=80",
-    ageGroup: "3-4 Yrs"
-  }
-];
+export const revalidate = 0; // Always fetch fresh data
 
-export default function Home() {
+export default async function Home() {
+  const dbProducts = await prisma.product.findMany({
+    orderBy: { createdAt: 'desc' },
+    take: 8,
+  });
   return (
     <main className="min-h-screen bg-background flex flex-col">
       <Navbar />
@@ -134,16 +82,31 @@ export default function Home() {
             <h2 className="text-3xl font-bold text-text">New Arrivals</h2>
             <p className="text-secondary mt-2 font-script text-2xl tracking-wide">Fresh looks for the season</p>
           </div>
-          <a href="#" className="hidden sm:block text-primary font-semibold hover:underline">
+          <Link href="/shop" className="hidden sm:block text-primary font-semibold hover:underline">
             View All →
-          </a>
+          </Link>
         </div>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-20">
-          {products.map(product => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
+        {dbProducts.length === 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-20">
+            <div className="aspect-[3/4] bg-secondary/10 rounded-2xl flex items-center justify-center border-2 border-dashed border-secondary/30 col-span-full">
+              <p className="text-text/50 font-medium">No products yet — add some from the Admin panel!</p>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-20">
+            {dbProducts.map(product => (
+              <ProductCard
+                key={product.id}
+                product={{
+                  ...product,
+                  id: product.id.toString(),
+                  imageUrl: product.imageUrl || 'https://images.unsplash.com/photo-1519689680058-324335c77eba?auto=format&fit=crop&q=80&w=600',
+                }}
+              />
+            ))}
+          </div>
+        )}
       </section>
       
       {/* Decorative wavy border bottom */}
