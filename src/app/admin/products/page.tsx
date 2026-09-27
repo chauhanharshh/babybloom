@@ -165,14 +165,14 @@ export default function AdminProducts() {
 
   return (
     <div className="space-y-6 relative">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Products</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Products</h1>
           <p className="text-gray-500 mt-1">Manage your store inventory.</p>
         </div>
         <button
           onClick={() => handleOpenModal()}
-          className="bg-primary text-white px-5 py-2.5 rounded-lg font-medium flex items-center gap-2 hover:bg-primary/90 transition-colors shadow-[0_4px_14px_0_rgb(168,43,84,0.39)] hover:shadow-[0_6px_20px_rgba(168,43,84,0.23)]"
+          className="bg-primary text-white px-5 py-2.5 rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors shadow-[0_4px_14px_0_rgb(168,43,84,0.39)] hover:shadow-[0_6px_20px_rgba(168,43,84,0.23)] w-full sm:w-auto"
         >
           <Plus className="w-5 h-5" />
           Add Product
@@ -180,8 +180,8 @@ export default function AdminProducts() {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="p-5 border-b border-gray-100 flex gap-4 items-center bg-gray-50/50">
-          <div className="relative flex-1 max-w-md">
+        <div className="p-4 sm:p-5 border-b border-gray-100 flex flex-col sm:flex-row gap-4 items-center bg-gray-50/50">
+          <div className="relative w-full sm:flex-1 sm:max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
               type="text"
@@ -194,7 +194,7 @@ export default function AdminProducts() {
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
-            className="bg-white border border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-sm font-medium text-gray-700"
+            className="w-full sm:w-auto bg-white border border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-sm font-medium text-gray-700"
           >
             <option value="All Categories">All Categories</option>
             <option value="Boys">Boys</option>

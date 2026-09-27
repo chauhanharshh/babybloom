@@ -86,14 +86,14 @@ export default function AdminOrders() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Orders</h1>
-          <p className="text-gray-500 mt-1">Real orders placed via WhatsApp checkout.</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Orders</h1>
+          <p className="text-gray-500 mt-1 text-sm sm:text-base">Real orders placed via WhatsApp checkout.</p>
         </div>
         <button
           onClick={fetchOrders}
-          className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors"
+          className="w-full sm:w-auto justify-center flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors"
         >
           <RefreshCw className="w-4 h-4" />
           Refresh
@@ -118,22 +118,22 @@ export default function AdminOrders() {
             >
               {/* Order Header */}
               <div
-                className="flex items-center justify-between p-5 cursor-pointer hover:bg-gray-50 transition-colors"
+                className="flex flex-col sm:flex-row sm:items-center justify-between p-4 sm:p-5 cursor-pointer hover:bg-gray-50 transition-colors gap-4"
                 onClick={() => setExpandedId(expandedId === order.id ? null : order.id)}
               >
                 <div className="flex items-center gap-4">
                   <div>
                     <p className="font-bold text-gray-900">Order #{order.id}</p>
-                    <p className="text-sm text-gray-500">{formatDate(order.createdAt)}</p>
+                    <p className="text-xs sm:text-sm text-gray-500">{formatDate(order.createdAt)}</p>
                   </div>
-                  <div className="hidden sm:block">
+                  <div>
                     <p className="text-sm font-medium text-gray-700">{order.customerName}</p>
                     <p className="text-xs text-gray-400">{order.items.length} item{order.items.length !== 1 ? "s" : ""}</p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4">
-                  <div className="text-right">
+                <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto border-t border-gray-100 sm:border-0 pt-3 sm:pt-0">
+                  <div className="text-left sm:text-right">
                     <p className="font-bold text-gray-900">₹{order.total.toFixed(0)}</p>
                     {getStatusBadge(order.status)}
                   </div>
@@ -144,18 +144,18 @@ export default function AdminOrders() {
                       <button
                         disabled={updating === order.id}
                         onClick={() => updateStatus(order.id, "approved")}
-                        className="flex items-center gap-1 px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                        className="flex items-center gap-1 px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors disabled:opacity-50"
                       >
                         <Check className="w-4 h-4" />
-                        Approve
+                        <span className="hidden sm:inline">Approve</span>
                       </button>
                       <button
                         disabled={updating === order.id}
                         onClick={() => updateStatus(order.id, "rejected")}
-                        className="flex items-center gap-1 px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                        className="flex items-center gap-1 px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors disabled:opacity-50"
                       >
                         <X className="w-4 h-4" />
-                        Reject
+                        <span className="hidden sm:inline">Reject</span>
                       </button>
                     </div>
                   )}
