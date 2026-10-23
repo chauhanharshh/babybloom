@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, Search as SearchIcon, X, ShoppingBag } from "lucide-react";
@@ -88,6 +88,14 @@ const SAMPLE_PRODUCTS: (Product & { mrp?: number })[] = [
 const RECENT_SEARCHES = ["frock", "dress", "boy set", "hoodie"];
 
 export default function SearchPage() {
+  return (
+    <Suspense fallback={null}>
+      <SearchPageContent />
+    </Suspense>
+  );
+}
+
+function SearchPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get("q") || "frock";
