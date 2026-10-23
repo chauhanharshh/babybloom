@@ -1,18 +1,22 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #a82b54;
-  --color-secondary: #f08fa4;
-  --color-background: #fdf8f5;
-  --color-text: #333333;
+  --color-primary: #ff2b75;
+  --color-primary-dark: #e01d62;
+  --color-secondary: #f43f7a;
+  --color-soft-pink: #fff0f5;
+  --color-pastel-pink: #fce7f3;
+  --color-background: #ffffff;
+  --color-text: #222222;
 }
 
 @layer base {
   body {
-    @apply bg-background text-text font-sans;
+    @apply bg-background text-text font-sans antialiased;
   }
 }
 
 .font-script {
   font-family: var(--font-great-vibes), cursive;
 }
+

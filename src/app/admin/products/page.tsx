@@ -354,6 +354,7 @@ export default function AdminProducts() {
                       <input
                         type="file"
                         ref={fileInputRef}
+                        
                         className="hidden"
                         accept="image/*"
                         onChange={handleImageUpload}
