@@ -25,11 +25,12 @@ import Footer from "@/components/Footer";
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { cart, totalPrice, totalItems, clearCart } = useCart();
+  const { cart, totalPrice, totalItems, clearCart, appliedCoupon } = useCart();
 
   // Address state
   const [address, setAddress] = useState({
     name: "Harsh Chauhan",
+    email: "harshchauhan@gmail.com",
     phone: "+91 8941000584",
     line1: "Khanna Nagar, House no. 41,",
     line2: "Opposite Kaushik Academy,",
@@ -47,8 +48,11 @@ export default function CheckoutPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState<{ id: number; total: number } | null>(null);
 
-  const displayTotal = totalPrice > 0 ? totalPrice : 2547;
-  const displayItemsCount = totalItems > 0 ? totalItems : 3;
+  const discount = appliedCoupon ? Math.round(totalPrice * (appliedCoupon.percent / 100)) : 0;
+  const finalTotal = Math.max(0, totalPrice - discount);
+  const displaySubtotal = totalPrice > 0 ? totalPrice : 404;
+  const displayTotal = totalPrice > 0 ? finalTotal : 404;
+  const displayItemsCount = totalItems > 0 ? totalItems : 1;
 
   const handleSaveAddress = (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,6 +78,7 @@ export default function CheckoutPage() {
         body: JSON.stringify({
           cart: orderItems,
           customerName: address.name,
+          customerEmail: address.email,
           address: `${address.line1} ${address.line2} ${address.cityStateZip}`,
           phone: address.phone,
           paymentMethod,
@@ -81,18 +86,15 @@ export default function CheckoutPage() {
       });
 
       const data = await res.json();
-      if (res.ok) {
-        setOrderSuccess({ id: data.orderId || Math.floor(100000 + Math.random() * 900000), total: displayTotal });
+      if (res.ok && data.success) {
+        setOrderSuccess({ id: data.orderId, total: displayTotal });
         clearCart();
       } else {
-        // Fallback demo order id
-        setOrderSuccess({ id: Math.floor(100000 + Math.random() * 900000), total: displayTotal });
-        clearCart();
+        alert("Could not place order: " + (data.error || "Please try again"));
       }
     } catch (err) {
       console.error("Order submission failed:", err);
-      setOrderSuccess({ id: Math.floor(100000 + Math.random() * 900000), total: displayTotal });
-      clearCart();
+      alert("Failed to connect to server. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -120,16 +122,14 @@ export default function CheckoutPage() {
         </div>
 
         {/* Small Babybloom branding on right */}
-        <Link href="/" className="flex items-center gap-1">
-          <div className="w-5 h-5">
-            <svg viewBox="0 0 100 100" className="w-full h-full">
-              <circle cx="50" cy="22" r="18" fill="#ff4d88" />
-              <circle cx="76" cy="40" r="18" fill="#ff4d88" />
-              <circle cx="66" cy="74" r="18" fill="#ff4d88" />
-              <circle cx="34" cy="74" r="18" fill="#ff4d88" />
-              <circle cx="24" cy="40" r="18" fill="#ff4d88" />
-              <circle cx="50" cy="50" r="14" fill="#fcd34d" />
-            </svg>
+        <Link href="/" className="flex items-center gap-1.5">
+          <div className="relative w-6 h-6 rounded-full overflow-hidden bg-white border border-pink-100 shadow-2xs flex-shrink-0">
+            <Image
+              src="/icons/apple-touch-icon.png"
+              alt="Babybloom Logo"
+              fill
+              className="object-contain"
+            />
           </div>
           <span className="text-sm font-extrabold text-[#ff2b75]">Babybloom</span>
         </Link>
@@ -175,6 +175,10 @@ export default function CheckoutPage() {
               <div className="flex justify-between text-gray-600">
                 <span>Deliver to:</span>
                 <span className="font-semibold">{address.name}</span>
+              </div>
+              <div className="flex justify-between text-gray-600">
+                <span>Email:</span>
+                <span className="font-semibold text-gray-800">{address.email}</span>
               </div>
             </div>
             <div className="pt-2 flex flex-col gap-2">
@@ -226,7 +230,7 @@ export default function CheckoutPage() {
                   {/* Address Text */}
                   <div className="text-xs space-y-1 text-gray-600">
                     <p className="font-bold text-gray-900 text-[13px] sm:text-sm">{address.name}</p>
-                    <p className="font-medium text-gray-700">{address.phone}</p>
+                    <p className="font-medium text-gray-700">{address.phone} • {address.email}</p>
                     <div className="leading-relaxed text-gray-500 pt-0.5">
                       <p>{address.line1}</p>
                       <p>{address.line2}</p>
@@ -338,8 +342,15 @@ export default function CheckoutPage() {
                 <div className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-100 shadow-xs space-y-3">
                   <div className="flex justify-between text-xs sm:text-sm text-gray-600 font-medium">
                     <span>Subtotal ({displayItemsCount} items)</span>
-                    <span className="text-gray-900 font-bold">₹{displayTotal}</span>
+                    <span className="text-gray-900 font-bold">₹{displaySubtotal}</span>
                   </div>
+
+                  {appliedCoupon && (
+                    <div className="flex justify-between text-xs sm:text-sm text-green-600 font-semibold">
+                      <span>Coupon Discount ({appliedCoupon.code} - {appliedCoupon.percent}%)</span>
+                      <span>-₹{discount}</span>
+                    </div>
+                  )}
 
                   <div className="flex justify-between text-xs sm:text-sm text-gray-600 font-medium">
                     <span>Shipping</span>
@@ -398,6 +409,18 @@ export default function CheckoutPage() {
                   required
                   value={tempAddress.name}
                   onChange={(e) => setTempAddress({ ...tempAddress, name: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#ff2b75]"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-gray-600 block mb-1">Email Address</label>
+                <input
+                  type="email"
+                  required
+                  placeholder="e.g. name@example.com"
+                  value={tempAddress.email}
+                  onChange={(e) => setTempAddress({ ...tempAddress, email: e.target.value })}
                   className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#ff2b75]"
                 />
               </div>

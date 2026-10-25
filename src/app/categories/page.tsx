@@ -4,7 +4,7 @@ import Navbar from "@/components/Navbar";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import CartDrawer from "@/components/CartDrawer";
 import Footer from "@/components/Footer";
-import Image from "next/image";
+import LazyImage from "@/components/LazyImage";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -96,11 +96,13 @@ export default function CategoriesPage() {
                 className={`w-full aspect-square rounded-2xl ${cat.bg} border p-2 flex flex-col items-center justify-center shadow-xs relative overflow-hidden transition-all group-hover:shadow-md`}
               >
                 <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden flex items-center justify-center group-hover:scale-105 transition-transform">
-                  <Image
+                  <LazyImage
                     src={cat.image}
                     alt={cat.title}
                     fill
+                    loading="lazy"
                     className="object-contain"
+                    fallbackText={cat.title}
                   />
                 </div>
               </div>

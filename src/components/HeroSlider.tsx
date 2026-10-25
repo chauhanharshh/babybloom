@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import LazyImage from "@/components/LazyImage";
 
 export interface Banner {
   id: number;
@@ -151,11 +151,12 @@ export default function HeroSlider({ banners = DEFAULT_BANNERS }: HeroSliderProp
                   }
                 }}
               >
-                <Image
+                <LazyImage
                   src={banner.image}
                   alt={banner.alt}
                   fill
                   priority={index === 0}
+                  loading={index === 0 ? "eager" : "lazy"}
                   className="object-cover object-center w-full h-full"
                   sizes="100vw"
                 />

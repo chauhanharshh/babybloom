@@ -1,5 +1,6 @@
 import { MapPin, Mail, Phone, Heart } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 
 const Facebook = ({ size = 18 }: { size?: number }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
@@ -31,15 +32,13 @@ export default function Footer() {
           {/* Brand Info */}
           <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <div className="relative w-7 h-7 flex-shrink-0">
-                <svg viewBox="0 0 100 100" className="w-full h-full">
-                  <circle cx="50" cy="22" r="18" fill="#ff4d88" />
-                  <circle cx="76" cy="40" r="18" fill="#ff4d88" />
-                  <circle cx="66" cy="74" r="18" fill="#ff4d88" />
-                  <circle cx="34" cy="74" r="18" fill="#ff4d88" />
-                  <circle cx="24" cy="40" r="18" fill="#ff4d88" />
-                  <circle cx="50" cy="50" r="14" fill="#fcd34d" />
-                </svg>
+              <div className="relative w-8 h-8 rounded-full overflow-hidden bg-white border border-pink-100/60 shadow-2xs flex-shrink-0">
+                <Image
+                  src="/icons/apple-touch-icon.png"
+                  alt="Babybloom Logo"
+                  fill
+                  className="object-contain"
+                />
               </div>
               <span className="text-2xl font-extrabold text-[#ff2b75]">Babybloom</span>
             </div>

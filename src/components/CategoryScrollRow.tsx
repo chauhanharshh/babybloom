@@ -1,9 +1,9 @@
 "use client";
 
 import { useRef } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
+import LazyImage from "@/components/LazyImage";
 
 export interface CategoryItem {
   title: string;
@@ -45,11 +45,13 @@ export default function CategoryScrollRow({ categories }: CategoryScrollRowProps
               className={`w-[72px] h-[72px] sm:w-[84px] sm:h-[84px] lg:w-full lg:aspect-square rounded-2xl ${cat.bg} border p-1.5 sm:p-2 flex flex-col items-center justify-center shadow-xs relative overflow-hidden transition-all group-hover:shadow-md`}
             >
               <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-xl overflow-hidden flex items-center justify-center group-hover:scale-105 transition-transform">
-                <Image
+                <LazyImage
                   src={cat.image}
                   alt={cat.title}
                   fill
+                  loading="lazy"
                   className="object-contain"
+                  fallbackText={cat.title}
                 />
               </div>
             </div>

@@ -15,4 +15,5 @@ const nextConfig: NextConfig = {
   },
 };
 
+// Reload trigger for Prisma client schema sync
 export default nextConfig;

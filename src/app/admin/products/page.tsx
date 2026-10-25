@@ -1,8 +1,11 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Plus, Search, Edit2, Trash2, X, UploadCloud, ImageIcon, Loader2 } from "lucide-react";
+import { Plus, Search, Edit2, Trash2, X, UploadCloud, ImageIcon, Loader2, FolderTree, RefreshCw } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
+import ConfirmDialog from "@/components/admin/ConfirmDialog";
+import LazyImage from "@/components/LazyImage";
 
 type Product = {
   id: number;
@@ -11,18 +14,91 @@ type Product = {
   stock: number;
   category: string;
   ageGroup: string;
+  style?: string;
   description: string | null;
   imageUrl: string | null;
 };
 
+type SubcategoryItem = {
+  id: number;
+  name: string;
+  slug: string;
+};
+
+type CategoryItem = {
+  id: number;
+  name: string;
+  slug: string;
+  subcategories: SubcategoryItem[];
+};
+
 export default function AdminProducts() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
   const [imageUploadError, setImageUploadError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("All Categories");
+
+  // Quick inline creation states
+  const [quickCatOpen, setQuickCatOpen] = useState(false);
+  const [quickCatName, setQuickCatName] = useState("");
+  const [quickSubOpen, setQuickSubOpen] = useState(false);
+  const [quickSubName, setQuickSubName] = useState("");
+
+  // Themed Confirm Dialog state
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmText?: string;
+    type?: "danger" | "warning" | "info";
+    isAlertOnly?: boolean;
+    isLoading?: boolean;
+    action?: () => Promise<void> | void;
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+  });
+
+  const openConfirm = (opts: {
+    title: string;
+    message: string;
+    confirmText?: string;
+    type?: "danger" | "warning" | "info";
+    action: () => Promise<void> | void;
+  }) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: opts.title,
+      message: opts.message,
+      confirmText: opts.confirmText || "Delete",
+      type: opts.type || "danger",
+      isAlertOnly: false,
+      isLoading: false,
+      action: opts.action,
+    });
+  };
+
+  const openAlert = (
+    title: string,
+    message: string,
+    type: "danger" | "warning" | "info" = "danger"
+  ) => {
+    setConfirmDialog({
+      isOpen: true,
+      title,
+      message,
+      confirmText: "OK",
+      type,
+      isAlertOnly: true,
+      isLoading: false,
+      action: () => setConfirmDialog((prev) => ({ ...prev, isOpen: false })),
+    });
+  };
 
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -35,23 +111,43 @@ export default function AdminProducts() {
     stock: "",
     category: "Girls",
     ageGroup: "0-1 Yrs",
+    style: "Regular",
     description: "",
     imageUrl: ""
   });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch products from DB on mount
+  // Fetch products and categories on mount + auto refresh on tab focus
   useEffect(() => {
     fetchProducts();
+    fetchCategories();
+
+    const handleFocus = () => {
+      fetchProducts();
+    };
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
   }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const res = await fetch("/api/categories");
+      const data = await res.json();
+      if (Array.isArray(data)) setCategories(data);
+    } catch (err) {
+      console.error("Failed to fetch categories", err);
+    }
+  };
 
   const fetchProducts = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/products");
+      const res = await fetch(`/api/products?t=${Date.now()}`, { cache: "no-store" });
       const data = await res.json();
-      setProducts(data);
+      if (Array.isArray(data)) {
+        setProducts(data);
+      }
     } catch (err) {
       console.error("Failed to fetch products", err);
     } finally {
@@ -75,12 +171,13 @@ export default function AdminProducts() {
         stock: product.stock.toString(),
         category: product.category,
         ageGroup: product.ageGroup,
+        style: product.style || "Regular",
         description: product.description || "",
         imageUrl: product.imageUrl || ""
       });
     } else {
       setEditingProduct(null);
-      setFormData({ name: "", price: "", stock: "", category: "Girls", ageGroup: "0-1 Yrs", description: "", imageUrl: "" });
+      setFormData({ name: "", price: "", stock: "", category: "Girls", ageGroup: "0-1 Yrs", style: "Regular", description: "", imageUrl: "" });
     }
     setIsModalOpen(true);
   };
@@ -88,6 +185,57 @@ export default function AdminProducts() {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingProduct(null);
+    setQuickCatOpen(false);
+    setQuickSubOpen(false);
+  };
+
+  // Quick category creation directly inside modal
+  const handleCreateQuickCategory = async () => {
+    if (!quickCatName.trim()) return;
+    try {
+      const res = await fetch("/api/categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: quickCatName.trim(), subcategories: ["Regular"] }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to create category");
+      setCategories([...categories, data]);
+      setFormData({ ...formData, category: data.name, style: "Regular" });
+      setQuickCatName("");
+      setQuickCatOpen(false);
+    } catch (err) {
+      openAlert("Category Error", (err as Error).message);
+    }
+  };
+
+  // Quick subcategory creation directly inside modal
+  const handleCreateQuickSubcategory = async () => {
+    if (!quickSubName.trim()) return;
+    const catObj = categories.find((c) => c.name.toLowerCase() === formData.category.toLowerCase());
+    if (!catObj) {
+      openAlert("Select Category", "Pehle ek valid category select karein jisme subcategory add karni hai.", "warning");
+      return;
+    }
+    try {
+      const res = await fetch(`/api/categories/${catObj.id}/subcategories`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: quickSubName.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to add subcategory");
+      setCategories(
+        categories.map((c) =>
+          c.id === catObj.id ? { ...c, subcategories: [...c.subcategories, data] } : c
+        )
+      );
+      setFormData({ ...formData, style: data.name });
+      setQuickSubName("");
+      setQuickSubOpen(false);
+    } catch (err) {
+      openAlert("Subcategory Error", (err as Error).message);
+    }
   };
 
   const handleSaveProduct = async (e: React.FormEvent) => {
@@ -121,15 +269,27 @@ export default function AdminProducts() {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (confirm("Are you sure you want to delete this product?")) {
-      try {
-        await fetch(`/api/products/${id}`, { method: "DELETE" });
-        setProducts(products.filter(p => p.id !== id));
-      } catch (err) {
-        console.error("Failed to delete product", err);
-      }
-    }
+  const handleDelete = (id: number) => {
+    const targetProduct = products.find((p) => p.id === id);
+    const prodName = targetProduct?.name ? `"${targetProduct.name}"` : "this product";
+
+    openConfirm({
+      title: "Delete Product?",
+      message: `Kya aap sure hain ki aap ${prodName} ko permanently delete karna chahte hain?`,
+      confirmText: "Yes, Delete Product",
+      type: "danger",
+      action: async () => {
+        setConfirmDialog((prev) => ({ ...prev, isLoading: true }));
+        try {
+          await fetch(`/api/products/${id}`, { method: "DELETE" });
+          setProducts(products.filter((p) => p.id !== id));
+          setConfirmDialog((prev) => ({ ...prev, isOpen: false, isLoading: false }));
+        } catch (err) {
+          setConfirmDialog((prev) => ({ ...prev, isLoading: false }));
+          openAlert("Delete Failed", "Failed to delete product: " + (err as Error).message);
+        }
+      },
+    });
   };
 
   const uploadToCloudinary = async (file: File): Promise<string> => {
@@ -170,13 +330,32 @@ export default function AdminProducts() {
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Products</h1>
           <p className="text-gray-500 mt-1">Manage your store inventory.</p>
         </div>
-        <button
-          onClick={() => handleOpenModal()}
-          className="bg-primary text-white px-5 py-2.5 rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors shadow-[0_4px_14px_0_rgb(168,43,84,0.39)] hover:shadow-[0_6px_20px_rgba(168,43,84,0.23)] w-full sm:w-auto"
-        >
-          <Plus className="w-5 h-5" />
-          Add Product
-        </button>
+        <div className="flex items-center gap-2.5 w-full sm:w-auto">
+          <button
+            type="button"
+            onClick={() => fetchProducts()}
+            disabled={loading}
+            className="bg-white border border-gray-200 text-gray-700 px-3.5 py-2.5 rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-gray-50 hover:border-gray-300 transition-colors shadow-xs text-sm"
+            title="Refresh Products & Stock"
+          >
+            <RefreshCw className={`w-4 h-4 text-[#ff2b75] ${loading ? "animate-spin" : ""}`} />
+            <span className="hidden sm:inline">Refresh</span>
+          </button>
+          <Link
+            href="/admin/categories"
+            className="bg-white border border-gray-200 text-gray-700 px-4 py-2.5 rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-gray-50 hover:border-gray-300 transition-colors shadow-xs text-sm"
+          >
+            <FolderTree className="w-4 h-4 text-[#ff2b75]" />
+            <span>Categories</span>
+          </Link>
+          <button
+            onClick={() => handleOpenModal()}
+            className="bg-primary text-white px-5 py-2.5 rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors shadow-[0_4px_14px_0_rgb(168,43,84,0.39)] hover:shadow-[0_6px_20px_rgba(168,43,84,0.23)] flex-1 sm:flex-initial"
+          >
+            <Plus className="w-5 h-5" />
+            <span>Add Product</span>
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -194,12 +373,22 @@ export default function AdminProducts() {
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
-            className="w-full sm:w-auto bg-white border border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-sm font-medium text-gray-700"
+            className="w-full sm:w-auto bg-white border border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-sm font-medium text-gray-700 cursor-pointer"
           >
             <option value="All Categories">All Categories</option>
-            <option value="Boys">Boys</option>
-            <option value="Girls">Girls</option>
-            <option value="Newborn">Newborn</option>
+            {categories.length > 0 ? (
+              categories.map((c) => (
+                <option key={c.id} value={c.name}>
+                  {c.name}
+                </option>
+              ))
+            ) : (
+              <>
+                <option value="Boys">Boys</option>
+                <option value="Girls">Girls</option>
+                <option value="Newborn">Newborn</option>
+              </>
+            )}
           </select>
         </div>
 
@@ -242,7 +431,14 @@ export default function AdminProducts() {
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 rounded-lg bg-gray-100 overflow-hidden relative flex-shrink-0 border border-gray-200 shadow-sm">
                           {product.imageUrl ? (
-                            <Image src={product.imageUrl} alt={product.name} fill className="object-cover" />
+                            <LazyImage
+                              src={product.imageUrl}
+                              alt={product.name}
+                              fill
+                              loading="lazy"
+                              className="object-cover"
+                              fallbackText={product.name}
+                            />
                           ) : (
                             <ImageIcon className="w-6 h-6 text-gray-400 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
                           )}
@@ -334,7 +530,7 @@ export default function AdminProducts() {
                         </div>
                       ) : formData.imageUrl ? (
                         <div className="absolute inset-0 w-full h-full">
-                          <Image src={formData.imageUrl} alt="Preview" fill className="object-cover" />
+                          <LazyImage src={formData.imageUrl} alt="Preview" fill className="object-cover" />
                           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                             <p className="text-white font-medium flex items-center gap-2">
                               <UploadCloud className="w-5 h-5" /> Change Image
@@ -445,25 +641,130 @@ export default function AdminProducts() {
                   <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm space-y-5">
                     <h3 className="text-base font-bold text-gray-900 border-b border-gray-100 pb-3">Organization</h3>
 
-                    <div className="grid grid-cols-2 gap-5">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      {/* Category Selector */}
                       <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-1.5">Category</label>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className="block text-sm font-semibold text-gray-700">Category</label>
+                          <button
+                            type="button"
+                            onClick={() => setQuickCatOpen(!quickCatOpen)}
+                            className="text-xs text-[#ff2b75] hover:underline font-semibold flex items-center gap-0.5"
+                          >
+                            <Plus className="w-3 h-3" /> New
+                          </button>
+                        </div>
+
+                        {quickCatOpen && (
+                          <div className="flex gap-1.5 mb-2">
+                            <input
+                              type="text"
+                              placeholder="New Category..."
+                              value={quickCatName}
+                              onChange={(e) => setQuickCatName(e.target.value)}
+                              className="flex-1 px-2.5 py-1 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary"
+                            />
+                            <button
+                              type="button"
+                              onClick={handleCreateQuickCategory}
+                              className="px-2.5 py-1 bg-[#ff2b75] text-white text-xs rounded-lg font-medium hover:bg-[#e01d62]"
+                            >
+                              Add
+                            </button>
+                          </div>
+                        )}
+
                         <select
                           value={formData.category}
-                          onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                          className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors font-medium text-gray-700 cursor-pointer"
+                          onChange={(e) => {
+                            const selected = e.target.value;
+                            const catObj = categories.find((c) => c.name.toLowerCase() === selected.toLowerCase());
+                            const firstSub = catObj?.subcategories?.[0]?.name || "Regular";
+                            setFormData({ ...formData, category: selected, style: firstSub });
+                          }}
+                          className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors font-medium text-gray-700 cursor-pointer text-sm"
                         >
-                          <option value="Boys">Boys</option>
-                          <option value="Girls">Girls</option>
-                          <option value="Newborn">Newborn</option>
+                          {categories.length > 0 ? (
+                            categories.map((c) => (
+                              <option key={c.id} value={c.name}>
+                                {c.name}
+                              </option>
+                            ))
+                          ) : (
+                            <>
+                              <option value="Girls">Girls</option>
+                              <option value="Boys">Boys</option>
+                              <option value="Newborn">Newborn</option>
+                            </>
+                          )}
                         </select>
                       </div>
+
+                      {/* Subcategory / Style Selector */}
                       <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-1.5">Age Group</label>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className="block text-sm font-semibold text-gray-700">Subcategory</label>
+                          <button
+                            type="button"
+                            onClick={() => setQuickSubOpen(!quickSubOpen)}
+                            className="text-xs text-[#ff2b75] hover:underline font-semibold flex items-center gap-0.5"
+                          >
+                            <Plus className="w-3 h-3" /> New
+                          </button>
+                        </div>
+
+                        {quickSubOpen && (
+                          <div className="flex gap-1.5 mb-2">
+                            <input
+                              type="text"
+                              placeholder="New Subcategory..."
+                              value={quickSubName}
+                              onChange={(e) => setQuickSubName(e.target.value)}
+                              className="flex-1 px-2.5 py-1 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary"
+                            />
+                            <button
+                              type="button"
+                              onClick={handleCreateQuickSubcategory}
+                              className="px-2.5 py-1 bg-[#ff2b75] text-white text-xs rounded-lg font-medium hover:bg-[#e01d62]"
+                            >
+                              Add
+                            </button>
+                          </div>
+                        )}
+
+                        {(() => {
+                          const catObj = categories.find(
+                            (c) => c.name.toLowerCase() === formData.category.toLowerCase()
+                          );
+                          const subList = catObj?.subcategories?.length
+                            ? Array.from(new Set([formData.style, ...catObj.subcategories.map((s) => s.name)]))
+                            : Array.from(new Set([formData.style, "Regular", "Casual", "Party Wear", "Ethnic Wear"]));
+
+                          return (
+                            <select
+                              value={formData.style}
+                              onChange={(e) => setFormData({ ...formData, style: e.target.value })}
+                              className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors font-medium text-gray-700 cursor-pointer text-sm"
+                            >
+                              {subList.map((subName) => (
+                                <option key={subName} value={subName}>
+                                  {subName}
+                                </option>
+                              ))}
+                            </select>
+                          );
+                        })()}
+                      </div>
+
+                      {/* Age Group */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className="block text-sm font-semibold text-gray-700">Age Group</label>
+                        </div>
                         <select
                           value={formData.ageGroup}
                           onChange={(e) => setFormData({ ...formData, ageGroup: e.target.value })}
-                          className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors font-medium text-gray-700 cursor-pointer"
+                          className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors font-medium text-gray-700 cursor-pointer text-sm"
                         >
                           <option value="0-1 Yrs">0-1 Yrs</option>
                           <option value="1-2 Yrs">1-2 Yrs</option>
@@ -471,6 +772,8 @@ export default function AdminProducts() {
                           <option value="3-4 Yrs">3-4 Yrs</option>
                           <option value="4-5 Yrs">4-5 Yrs</option>
                           <option value="5-6 Yrs">5-6 Yrs</option>
+                          <option value="1-6 Yrs">1-6 Yrs</option>
+                          <option value="0-12 Months">0-12 Months</option>
                         </select>
                       </div>
                     </div>
@@ -503,6 +806,22 @@ export default function AdminProducts() {
           </div>
         </div>
       )}
+      {/* Themed Custom Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        confirmText={confirmDialog.confirmText}
+        type={confirmDialog.type}
+        isAlertOnly={confirmDialog.isAlertOnly}
+        isLoading={confirmDialog.isLoading}
+        onConfirm={() => {
+          if (confirmDialog.action) confirmDialog.action();
+        }}
+        onCancel={() => {
+          setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
+        }}
+      />
     </div>
   );
 }

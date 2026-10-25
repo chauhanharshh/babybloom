@@ -31,6 +31,8 @@ interface CartContextType {
   setIsCartOpen: (isOpen: boolean) => void;
   totalItems: number;
   totalPrice: number;
+  appliedCoupon: { code: string; percent: number } | null;
+  setAppliedCoupon: (coupon: { code: string; percent: number } | null) => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -108,6 +110,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>(DEFAULT_INITIAL_CART);
   const [wishlist, setWishlist] = useState<Product[]>(DEFAULT_INITIAL_WISHLIST);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; percent: number } | null>(null);
 
   // Sync with localStorage on client
   useEffect(() => {
@@ -207,6 +210,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         setIsCartOpen,
         totalItems,
         totalPrice,
+        appliedCoupon,
+        setAppliedCoupon,
       }}
     >
       {children}

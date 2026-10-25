@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, Search, ShoppingBag, Heart } from "lucide-react";
 import { useCart } from "@/context/CartContext";
@@ -32,15 +33,13 @@ export default function WishlistPage() {
 
         {/* Babybloom Logo */}
         <Link href="/" className="flex items-center gap-1.5">
-          <div className="w-6 h-6 flex-shrink-0">
-            <svg viewBox="0 0 100 100" className="w-full h-full">
-              <circle cx="50" cy="22" r="18" fill="#ff4d88" />
-              <circle cx="76" cy="40" r="18" fill="#ff4d88" />
-              <circle cx="66" cy="74" r="18" fill="#ff4d88" />
-              <circle cx="34" cy="74" r="18" fill="#ff4d88" />
-              <circle cx="24" cy="40" r="18" fill="#ff4d88" />
-              <circle cx="50" cy="50" r="14" fill="#fcd34d" />
-            </svg>
+          <div className="relative w-7 h-7 rounded-full overflow-hidden bg-white border border-pink-100 shadow-2xs flex-shrink-0">
+            <Image
+              src="/icons/apple-touch-icon.png"
+              alt="Babybloom Logo"
+              fill
+              className="object-contain"
+            />
           </div>
           <span className="text-xl font-extrabold text-[#ff2b75] tracking-tight">Babybloom</span>
         </Link>

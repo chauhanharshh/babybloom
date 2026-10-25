@@ -6,9 +6,10 @@ import NewsletterForm from "@/components/NewsletterForm";
 import HeroSlider from "@/components/HeroSlider";
 import CategoryScrollRow from "@/components/CategoryScrollRow";
 import MobileBottomNav from "@/components/MobileBottomNav";
-import Image from "next/image";
+import LazyImage from "@/components/LazyImage";
 import prisma from "@/lib/prisma";
 import Link from "next/link";
+import { getActiveOffers, calculateProductOffer, type ActiveOffer } from "@/lib/offers";
 import { 
   Truck, 
   ShieldCheck, 
@@ -138,34 +139,110 @@ const CATEGORIES = [
 ];
 
 export default async function Home() {
-  // Fetch latest products from database (connected directly to Admin Panel)
-  const dbProducts = await prisma.product.findMany({
-    orderBy: { createdAt: "desc" },
-    take: 6,
+  // Fetch latest products, active hero banners, active offers, and categories
+  type DbProduct = Awaited<ReturnType<typeof prisma.product.findMany>>[number];
+  type DbBanner = Awaited<ReturnType<typeof prisma.banner.findMany>>[number];
+  type DbCategory = Awaited<
+    ReturnType<typeof prisma.category.findMany<{ include: { subcategories: true } }>>
+  >[number];
+
+  let dbProducts: DbProduct[] = [];
+  let dbBanners: DbBanner[] = [];
+  let activeOffers: ActiveOffer[] = [];
+  let dbCategories: DbCategory[] = [];
+
+  try {
+    const [productsRes, bannersRes, offersRes, categoriesRes] = await Promise.all([
+      prisma.product.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 6,
+      }),
+      prisma.banner.findMany({
+        where: { isActive: true },
+        orderBy: [{ order: "asc" }, { createdAt: "desc" }],
+      }),
+      getActiveOffers(),
+      prisma.category.findMany({
+        include: { subcategories: { orderBy: { id: "asc" } } },
+        orderBy: { id: "asc" },
+      }),
+    ]);
+    dbProducts = productsRes;
+    dbBanners = bannersRes;
+    activeOffers = offersRes;
+    dbCategories = categoriesRes;
+  } catch (error) {
+    console.warn(
+      "Notice: Could not load data from database on Home page (falling back to sample data):",
+      (error as Error)?.message || error
+    );
+  }
+
+  // Format Hero Banners from database
+  const heroBanners = dbBanners.length > 0
+    ? dbBanners.map((b) => ({
+        id: b.id,
+        image: b.imageUrl,
+        href: b.linkUrl || "/shop",
+        alt: b.alt || b.title || "Babybloom Hero Banner",
+      }))
+    : undefined;
+
+  // Display DB products directly with active offers dynamically applied
+  const baseProducts = dbProducts.length > 0 ? dbProducts : SAMPLE_BEST_SELLERS;
+  const displayProducts = baseProducts.map((p) => {
+    const offer = calculateProductOffer(p.id, p.category, p.price, activeOffers);
+    return {
+      id: p.id.toString(),
+      name: p.name,
+      price: offer.price,
+      imageUrl: p.imageUrl || "/images/products/party-frock.jpg",
+      ageGroup: p.ageGroup,
+      mrp: offer.mrp,
+      discountPercent: offer.discountPercent,
+      offerTitle: offer.appliedOffer?.title,
+    };
   });
 
-  // Display DB products directly so any additions or edits from Admin Panel reflect on homepage
-  const displayProducts = dbProducts.length > 0 
-    ? dbProducts.map((p) => ({
-        id: p.id.toString(),
-        name: p.name,
-        price: p.price,
-        imageUrl: p.imageUrl || "/images/products/party-frock.jpg",
-        ageGroup: p.ageGroup,
-        mrp: Math.round(p.price * 1.5),
+  const pastelBgs = [
+    "bg-[#ffe4ec] border-[#fecdd3]",
+    "bg-[#fef3c7] border-[#fde68a]",
+    "bg-[#e0f2fe] border-[#bae6fd]",
+    "bg-[#fce7f3] border-[#fbcfe8]",
+    "bg-[#f3e8ff] border-[#e9d5ff]",
+    "bg-[#ffedd5] border-[#fed7aa]",
+  ];
+  const knownRoutes: Record<string, string> = {
+    girls: "/girls",
+    boys: "/boys",
+    newborn: "/newborn",
+  };
+  const displayCategories = dbCategories.length > 0
+    ? dbCategories.map((c, i) => ({
+        title: c.name,
+        sub: c.subcategories.length > 0 ? `(${c.subcategories.length} Styles)` : "",
+        href: knownRoutes[c.slug.toLowerCase()] || `/category/${c.slug}`,
+        bg: pastelBgs[i % pastelBgs.length],
+        image:
+          c.imageUrl ||
+          (c.slug.toLowerCase() === "girls"
+            ? "/images/categories/girls-wear.jpg"
+            : c.slug.toLowerCase() === "boys"
+            ? "/images/categories/boys-wear.jpg"
+            : "/images/categories/newborn-romper.jpg"),
       }))
-    : SAMPLE_BEST_SELLERS;
+    : CATEGORIES;
 
   return (
     <main className="min-h-screen bg-white flex flex-col pb-16 md:pb-0">
       <Navbar />
       <CartDrawer />
 
-      {/* 1. Babybloom Hero Banner Slider */}
-      <HeroSlider />
+      {/* 1. Babybloom Hero Banner Slider (Live dynamic banners from Admin Panel) */}
+      <HeroSlider banners={heroBanners} />
 
-      {/* 2. Category Quick-Nav Row (Horizontally Scrollable with Right Arrow button matching Reference Mockup) */}
-      <CategoryScrollRow categories={CATEGORIES} />
+      {/* 2. Category Quick-Nav Row (Live dynamic categories from DB) */}
+      <CategoryScrollRow categories={displayCategories} />
 
       {/* 3. "♥ Our Best Sellers ♥" Heading with "See All >" on the right */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-3 sm:pt-6 pb-4 w-full">
@@ -243,10 +320,11 @@ export default async function Home() {
             {/* Left: Teddy Bear Image + Newsletter Text */}
             <div className="flex items-center gap-3 shrink-0 w-full sm:w-auto">
               <div className="relative w-14 h-14 sm:w-20 sm:h-20 rounded-2xl overflow-hidden bg-white shadow-xs shrink-0 drop-shadow-sm">
-                <Image
+                <LazyImage
                   src="/images/teddy-bear.jpg"
                   alt="Cute Teddy Bear holding pink heart"
                   fill
+                  loading="lazy"
                   className="object-contain p-1"
                 />
               </div>

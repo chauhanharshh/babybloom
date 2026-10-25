@@ -1,18 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
-import { Plus, Minus, Heart, ShoppingCart, Sparkles } from "lucide-react";
+import { Plus, Minus, Heart, ShoppingCart } from "lucide-react";
 import { useCart, Product } from "@/context/CartContext";
+import LazyImage from "@/components/LazyImage";
 
 interface ProductCardProps {
-  product: Product & { mrp?: number };
+  product: Product & { mrp?: number; discountPercent?: number; offerTitle?: string };
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
   const { cart, addToCart, updateQuantity, toggleWishlist, isInWishlist } = useCart();
-  const [imgError, setImgError] = useState(false);
 
   const cartItem = cart.find((item) => item.id === product.id);
   const isLiked = isInWishlist(product.id);
@@ -20,36 +19,27 @@ export default function ProductCard({ product }: ProductCardProps) {
   // If MRP not provided, generate a sensible strikethrough price (+40-50%)
   const mrp = product.mrp || Math.round(product.price * 1.5);
 
-  const isBlobUrl = product.imageUrl?.startsWith("blob:");
-  const hasImage = Boolean(product.imageUrl && !isBlobUrl && !imgError);
-
   return (
     <div className="group relative bg-white rounded-2xl p-2.5 sm:p-3 transition-all duration-300 hover:shadow-md border border-gray-100 shadow-xs flex flex-col justify-between">
       {/* Product Image Area / Placeholder (Links to Product Details Page) */}
       <div className="relative aspect-square mb-2 sm:mb-2.5 rounded-xl overflow-hidden bg-pink-50/20 flex items-center justify-center">
         <Link href={`/product/${product.id}`} className="absolute inset-0 z-0">
-          {hasImage ? (
-            <Image
-              src={product.imageUrl!}
-              alt={product.name}
-              fill
-              className="object-cover object-center transition-transform duration-500 group-hover:scale-105"
-              onError={() => setImgError(true)}
-            />
-          ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center p-3 text-center bg-pink-50/60 border border-dashed border-pink-200 rounded-xl">
-              <div className="w-10 h-10 rounded-full bg-white shadow-xs flex items-center justify-center text-[#ff2b75] mb-2">
-                <Sparkles size={18} />
-              </div>
-              <span className="text-[11px] font-bold text-gray-700 leading-tight line-clamp-1">
-                {product.name}
-              </span>
-              <span className="text-[9px] text-pink-500 font-medium mt-0.5">
-                Image Placeholder
-              </span>
-            </div>
-          )}
+          <LazyImage
+            src={product.imageUrl || "/images/products/party-frock.jpg"}
+            alt={product.name}
+            fill
+            loading="lazy"
+            className="object-cover object-center transition-transform duration-500 group-hover:scale-105"
+            fallbackText={product.name}
+          />
         </Link>
+
+        {/* Dynamic Offer Badge */}
+        {product.discountPercent && product.discountPercent > 0 ? (
+          <div className="absolute top-2 left-2 z-10 bg-gradient-to-r from-[#ff2b75] to-pink-500 text-white font-black text-[9px] px-2 py-0.5 rounded-full shadow-xs uppercase tracking-wider flex items-center gap-0.5">
+            <span>{product.discountPercent}% OFF</span>
+          </div>
+        ) : null}
 
         {/* Wishlist Heart Button (Clean circular white button matching mockup) */}
         <button

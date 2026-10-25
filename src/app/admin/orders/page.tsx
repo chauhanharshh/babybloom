@@ -14,6 +14,10 @@ interface OrderItem {
 interface Order {
   id: number;
   customerName: string;
+  customerEmail?: string | null;
+  phone?: string | null;
+  address?: string | null;
+  paymentMethod?: string | null;
   total: number;
   status: string;
   createdAt: string;
@@ -38,10 +42,17 @@ export default function AdminOrders() {
 
   const fetchOrders = async () => {
     setLoading(true);
-    const res = await fetch("/api/orders");
-    const data = await res.json();
-    setOrders(data);
-    setLoading(false);
+    try {
+      const res = await fetch(`/api/orders?t=${Date.now()}`, { cache: "no-store" });
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setOrders(data);
+      }
+    } catch (e) {
+      console.error("Failed to load orders:", e);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -89,7 +100,7 @@ export default function AdminOrders() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Orders</h1>
-          <p className="text-gray-500 mt-1 text-sm sm:text-base">Real orders placed via WhatsApp checkout.</p>
+          <p className="text-gray-500 mt-1 text-sm sm:text-base">Manage customer orders, view delivery details, and update statuses.</p>
         </div>
         <button
           onClick={fetchOrders}
@@ -128,7 +139,13 @@ export default function AdminOrders() {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-700">{order.customerName}</p>
-                    <p className="text-xs text-gray-400">{order.items.length} item{order.items.length !== 1 ? "s" : ""}</p>
+                    {order.customerEmail && (
+                      <p className="text-xs text-[#ff2b75] font-medium">{order.customerEmail}</p>
+                    )}
+                    <p className="text-xs text-gray-400">
+                      {order.items.length} item{order.items.length !== 1 ? "s" : ""}
+                      {order.phone && ` · ${order.phone}`}
+                    </p>
                   </div>
                 </div>
 
@@ -186,8 +203,16 @@ export default function AdminOrders() {
                       </div>
                     ))}
                   </div>
-                  <div className="mt-3 flex justify-end">
-                    <p className="text-sm font-bold text-gray-900">
+                  <div className="mt-3 pt-3 border-t border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                    <div className="text-xs text-gray-500">
+                      {order.address && (
+                        <p><strong className="text-gray-700">Delivery Address:</strong> {order.address}</p>
+                      )}
+                      {order.paymentMethod && (
+                        <p><strong className="text-gray-700">Payment:</strong> {order.paymentMethod.toUpperCase()}</p>
+                      )}
+                    </div>
+                    <p className="text-sm font-bold text-gray-900 shrink-0">
                       Total: ₹{order.total.toFixed(0)}
                     </p>
                   </div>

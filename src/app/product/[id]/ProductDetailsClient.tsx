@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import LazyImage from "@/components/LazyImage";
 import { useRouter } from "next/navigation";
 import { 
   ChevronLeft, 
@@ -58,7 +59,14 @@ export default function ProductDetailsClient({ product }: ProductDetailsClientPr
       addToCart(product, `${selectedSize} / Standard`);
     }
     setAddedToast(true);
-    setTimeout(() => setAddedToast(false), 2500);
+    setTimeout(() => setAddedToast(false), 4000);
+  };
+
+  const handleBuyNow = () => {
+    for (let i = 0; i < quantity; i++) {
+      addToCart(product, `${selectedSize} / Standard`);
+    }
+    router.push("/checkout");
   };
 
   const toggleAccordion = (section: string) => {
@@ -85,15 +93,13 @@ export default function ProductDetailsClient({ product }: ProductDetailsClientPr
 
         {/* Babybloom Logo */}
         <Link href="/" className="flex items-center gap-1.5">
-          <div className="w-6 h-6 flex-shrink-0">
-            <svg viewBox="0 0 100 100" className="w-full h-full">
-              <circle cx="50" cy="22" r="18" fill="#ff4d88" />
-              <circle cx="76" cy="40" r="18" fill="#ff4d88" />
-              <circle cx="66" cy="74" r="18" fill="#ff4d88" />
-              <circle cx="34" cy="74" r="18" fill="#ff4d88" />
-              <circle cx="24" cy="40" r="18" fill="#ff4d88" />
-              <circle cx="50" cy="50" r="14" fill="#fcd34d" />
-            </svg>
+          <div className="relative w-7 h-7 rounded-full overflow-hidden bg-white border border-pink-100 shadow-2xs flex-shrink-0">
+            <Image
+              src="/icons/apple-touch-icon.png"
+              alt="Babybloom Logo"
+              fill
+              className="object-contain"
+            />
           </div>
           <span className="text-xl font-extrabold text-[#ff2b75] tracking-tight">Babybloom</span>
         </Link>
@@ -119,12 +125,13 @@ export default function ProductDetailsClient({ product }: ProductDetailsClientPr
           {/* Left Column: Image Gallery Box */}
           <div className="md:sticky md:top-24 space-y-3">
             <div className="relative w-full aspect-square bg-pink-50/20 overflow-hidden md:rounded-3xl border-b md:border border-gray-100 shadow-xs">
-              <Image
+              <LazyImage
                 src={images[currentImageIndex]}
                 alt={product.name}
                 fill
                 priority
                 className="object-cover object-center"
+                fallbackText={product.name}
               />
 
               {/* Floating Top Buttons on Image (Left Back, Right Heart & Share) */}
@@ -188,7 +195,13 @@ export default function ProductDetailsClient({ product }: ProductDetailsClientPr
                     idx === currentImageIndex ? "border-[#ff2b75] shadow-xs" : "border-gray-200 hover:border-gray-300"
                   }`}
                 >
-                  <Image src={img} alt="" fill className="object-cover" />
+                  <LazyImage
+                    src={img}
+                    alt={`${product.name} thumbnail ${idx + 1}`}
+                    fill
+                    loading="lazy"
+                    className="object-cover"
+                  />
                 </button>
               ))}
             </div>
@@ -264,13 +277,14 @@ export default function ProductDetailsClient({ product }: ProductDetailsClientPr
             </div>
           </div>
 
-          {/* Quantity Stepper & Add to Cart Button */}
-          <div className="flex items-center gap-3 pt-2">
-            <div className="flex items-center border border-gray-200 rounded-xl p-1 bg-gray-50">
+          {/* Quantity Stepper & Add to Cart / Buy Now Buttons */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 pt-2">
+            <div className="flex items-center justify-between border border-gray-200 rounded-xl p-1 bg-gray-50 self-start sm:self-auto">
               <button
                 type="button"
                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
                 className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-gray-700 hover:text-[#ff2b75] shadow-xs active:scale-95"
+                aria-label="Decrease quantity"
               >
                 <Minus size={13} />
               </button>
@@ -281,26 +295,45 @@ export default function ProductDetailsClient({ product }: ProductDetailsClientPr
                 type="button"
                 onClick={() => setQuantity(quantity + 1)}
                 className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-gray-700 hover:text-[#ff2b75] shadow-xs active:scale-95"
+                aria-label="Increase quantity"
               >
                 <Plus size={13} />
               </button>
             </div>
 
-            <button
-              type="button"
-              onClick={handleAddToCart}
-              className="flex-1 bg-[#ff2b75] hover:bg-[#e01d62] text-white py-3 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-md shadow-pink-500/20 active:scale-98 transition-all"
-            >
-              <ShoppingCart size={16} />
-              <span>Add to Cart</span>
-            </button>
+            <div className="flex-1 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleAddToCart}
+                className="flex-1 bg-pink-50 hover:bg-pink-100 text-[#ff2b75] border border-pink-200 py-3 px-3 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 active:scale-98 transition-all"
+              >
+                <ShoppingCart size={15} />
+                <span>Add to Cart</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleBuyNow}
+                className="flex-1 bg-[#ff2b75] hover:bg-[#e01d62] text-white py-3 px-3 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-md shadow-pink-500/20 active:scale-98 transition-all"
+              >
+                <span>Buy Now</span>
+              </button>
+            </div>
           </div>
 
-          {/* Added to Cart Toast Notification */}
+          {/* Added to Cart Toast Notification with View Cart Link */}
           {addedToast && (
-            <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 animate-fade-in">
-              <Check size={16} />
-              <span>Added to your cart successfully!</span>
+            <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between gap-2 shadow-xs animate-in fade-in duration-200">
+              <div className="flex items-center gap-1.5">
+                <Check size={15} className="text-emerald-600" />
+                <span>Added to cart!</span>
+              </div>
+              <Link
+                href="/cart"
+                className="bg-[#ff2b75] hover:bg-[#e01d62] text-white px-2.5 py-1 rounded-lg text-[11px] font-extrabold shadow-2xs transition-colors shrink-0"
+              >
+                View Cart &rarr;
+              </Link>
             </div>
           )}
 

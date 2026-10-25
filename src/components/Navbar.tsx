@@ -2,32 +2,57 @@
 
 import { ShoppingBag, Search, User, Menu, X, ChevronDown } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import Image from "next/image";
+import { useState, useEffect } from "react";
 import { useCart } from "@/context/CartContext";
 
 export default function Navbar() {
   const { totalItems, setIsCartOpen } = useCart();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [activeOfferText, setActiveOfferText] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/offers?active=true")
+      .then((res) => res.json())
+      .then((offers) => {
+        if (Array.isArray(offers) && offers.length > 0) {
+          const promo = offers.find((o) => o.bannerText)?.bannerText ||
+            `🎉 ${offers[0].title} - Flat ${offers[0].discountPercent}% OFF!`;
+          setActiveOfferText(promo);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   return (
     <header className="sticky top-0 z-40 w-full bg-white shadow-xs border-b border-pink-100">
-      {/* Top Pink Announcement Bar (Matching Reference Mockup) */}
+      {/* Top Pink Announcement Bar (Matching Reference Mockup & Live Offers) */}
       <div className="bg-[#ff2b75] text-white py-1.5 px-3 sm:px-6 text-center text-xs font-semibold tracking-wide flex items-center justify-between sm:justify-center gap-2">
         <span className="text-white/80 hover:text-white cursor-pointer px-1 text-sm font-bold sm:hidden">&lt;</span>
-        <div className="flex items-center justify-center gap-1.5 sm:gap-4">
-          <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"></path>
-            <path d="M15 18H9"></path>
-            <path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62l-3.24-4.05a1 1 0 0 0-.78-.38H14v8h1"></path>
-            <circle cx="17" cy="18" r="2"></circle>
-            <circle cx="7" cy="18" r="2"></circle>
-          </svg>
-          <span>Free Shipping on Orders Above ₹999</span>
-          <span className="opacity-70 hidden sm:inline">|</span>
-          <span className="hidden sm:inline">♥ Easy Returns</span>
-          <span className="opacity-70 hidden sm:inline">|</span>
-          <span className="hidden sm:inline">♥ Happy Kids, Happy Parents!</span>
+        <div className="flex items-center justify-center gap-1.5 sm:gap-4 truncate">
+          {activeOfferText ? (
+            <span className="font-extrabold tracking-normal flex items-center gap-1.5">
+              <span>★</span>
+              <span className="truncate">{activeOfferText}</span>
+              <span>★</span>
+            </span>
+          ) : (
+            <>
+              <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"></path>
+                <path d="M15 18H9"></path>
+                <path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62l-3.24-4.05a1 1 0 0 0-.78-.38H14v8h1"></path>
+                <circle cx="17" cy="18" r="2"></circle>
+                <circle cx="7" cy="18" r="2"></circle>
+              </svg>
+              <span>Free Shipping on Orders Above ₹999</span>
+              <span className="opacity-70 hidden sm:inline">|</span>
+              <span className="hidden sm:inline">♥ Easy Returns</span>
+              <span className="opacity-70 hidden sm:inline">|</span>
+              <span className="hidden sm:inline">♥ Happy Kids, Happy Parents!</span>
+            </>
+          )}
         </div>
         <span className="text-white/80 hover:text-white cursor-pointer px-1 text-sm font-bold sm:hidden">&gt;</span>
       </div>
@@ -48,20 +73,14 @@ export default function Navbar() {
 
             {/* Logo */}
             <Link href="/" className="flex items-center gap-2.5 group">
-              <div className="relative w-9 h-9 flex-shrink-0 transition-transform group-hover:scale-105">
-                <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-sm">
-                  {/* Flower Petals */}
-                  <circle cx="50" cy="22" r="18" fill="#ff4d88" />
-                  <circle cx="76" cy="40" r="18" fill="#ff4d88" />
-                  <circle cx="66" cy="74" r="18" fill="#ff4d88" />
-                  <circle cx="34" cy="74" r="18" fill="#ff4d88" />
-                  <circle cx="24" cy="40" r="18" fill="#ff4d88" />
-                  {/* Flower Center */}
-                  <circle cx="50" cy="50" r="15" fill="#fcd34d" />
-                  <circle cx="50" cy="50" r="11" fill="#f59e0b" />
-                  {/* Leaf / Stem */}
-                  <path d="M48 68 C45 84, 30 88, 22 92 C36 94, 52 86, 52 72 Z" fill="#22c55e" />
-                </svg>
+              <div className="relative w-9 h-9 sm:w-10 sm:h-10 flex-shrink-0 transition-transform group-hover:scale-105 rounded-full overflow-hidden shadow-2xs border border-pink-100/60 bg-white">
+                <Image
+                  src="/icons/apple-touch-icon.png"
+                  alt="Babybloom Logo"
+                  fill
+                  priority
+                  className="object-contain"
+                />
               </div>
 
               <div className="flex flex-col">
@@ -148,16 +167,18 @@ export default function Navbar() {
               <User size={21} />
             </Link>
 
-            <button 
+            <Link 
+              href="/cart"
               className="p-2 text-gray-700 hover:text-[#ff2b75] relative transition-transform hover:scale-105 active:scale-95 rounded-full hover:bg-pink-50"
-              onClick={() => setIsCartOpen(true)}
-              aria-label="Open Cart"
+              aria-label="View Cart"
             >
               <ShoppingBag size={22} />
-              <span className="absolute top-1 right-1 inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-extrabold leading-none text-white bg-[#ff2b75] rounded-full shadow-xs">
-                {totalItems}
-              </span>
-            </button>
+              {totalItems > 0 && (
+                <span className="absolute top-1 right-1 inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-extrabold leading-none text-white bg-[#ff2b75] rounded-full shadow-xs">
+                  {totalItems}
+                </span>
+              )}
+            </Link>
           </div>
 
         </div>

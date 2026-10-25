@@ -1,20 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
+import LazyImage from "@/components/LazyImage";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { 
-  ChevronLeft, 
-  Search, 
-  ShoppingBag, 
-  Minus, 
-  Plus, 
-  Trash2, 
-  Tag, 
+import {
+  Minus,
+  Plus,
+  Trash2,
   ChevronRight,
   Check,
-  Percent
+  Percent,
+  ShoppingBag
 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import MobileBottomNav from "@/components/MobileBottomNav";
@@ -23,10 +20,10 @@ import Footer from "@/components/Footer";
 
 export default function CartPage() {
   const router = useRouter();
-  const { cart, updateQuantity, removeFromCart, clearCart, totalPrice, totalItems } = useCart();
+  const { cart, updateQuantity, removeFromCart, clearCart, totalPrice, totalItems, appliedCoupon, setAppliedCoupon } = useCart();
   const [selectedItems, setSelectedItems] = useState<Record<string, boolean>>({});
   const [couponCode, setCouponCode] = useState("");
-  const [couponApplied, setCouponApplied] = useState(false);
+  const [couponError, setCouponError] = useState("");
   const [isCouponModalOpen, setIsCouponModalOpen] = useState(false);
 
   // Toggle item selection
@@ -35,8 +32,38 @@ export default function CartPage() {
     setSelectedItems((prev) => ({ ...prev, [id]: !isSelected(id) }));
   };
 
-  const discount = couponApplied ? Math.round(totalPrice * 0.1) : 0;
+  const discount = appliedCoupon ? Math.round(totalPrice * (appliedCoupon.percent / 100)) : 0;
   const finalTotal = Math.max(0, totalPrice - discount);
+
+  const handleApplyCoupon = async () => {
+    setCouponError("");
+    const trimmed = couponCode.trim().toUpperCase();
+    if (!trimmed) return;
+    try {
+      const res = await fetch("/api/offers?active=true");
+      const offers = await res.json();
+      const match = offers.find(
+        (o: { couponCode?: string; discountPercent: number }) =>
+          o.couponCode && o.couponCode.toUpperCase() === trimmed
+      );
+      if (match) {
+        setAppliedCoupon({ code: match.couponCode, percent: match.discountPercent });
+        setIsCouponModalOpen(false);
+      } else if (trimmed === "BABYBLOOM10") {
+        setAppliedCoupon({ code: "BABYBLOOM10", percent: 10 });
+        setIsCouponModalOpen(false);
+      } else {
+        setCouponError("Invalid or expired coupon code");
+      }
+    } catch {
+      if (trimmed === "BABYBLOOM10") {
+        setAppliedCoupon({ code: "BABYBLOOM10", percent: 10 });
+        setIsCouponModalOpen(false);
+      } else {
+        setCouponError("Invalid coupon code");
+      }
+    }
+  };
 
   return (
     <main className="min-h-screen bg-gray-50/60 flex flex-col pb-24 md:pb-8">
@@ -45,51 +72,13 @@ export default function CartPage() {
         <Navbar />
       </div>
 
-      {/* Screen 5 Mobile Header */}
-      <div className="sticky top-0 z-30 bg-white border-b border-gray-100 px-4 py-2.5 flex items-center justify-between md:hidden">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="p-1 -ml-1 text-gray-700 hover:text-[#ff2b75]"
-        >
-          <ChevronLeft size={24} />
-        </button>
-
-        {/* Babybloom Logo */}
-        <Link href="/" className="flex items-center gap-1.5">
-          <div className="w-6 h-6 flex-shrink-0">
-            <svg viewBox="0 0 100 100" className="w-full h-full">
-              <circle cx="50" cy="22" r="18" fill="#ff4d88" />
-              <circle cx="76" cy="40" r="18" fill="#ff4d88" />
-              <circle cx="66" cy="74" r="18" fill="#ff4d88" />
-              <circle cx="34" cy="74" r="18" fill="#ff4d88" />
-              <circle cx="24" cy="40" r="18" fill="#ff4d88" />
-              <circle cx="50" cy="50" r="14" fill="#fcd34d" />
-            </svg>
-          </div>
-          <span className="text-xl font-extrabold text-[#ff2b75] tracking-tight">Babybloom</span>
-        </Link>
-
-        <div className="flex items-center gap-2">
-          <Link href="/search" className="p-1 text-gray-700 hover:text-[#ff2b75]">
-            <Search size={20} />
-          </Link>
-          <Link href="/cart" className="p-1 text-[#ff2b75] relative">
-            <ShoppingBag size={21} />
-            {totalItems > 0 && (
-              <span className="absolute -top-1 -right-1 bg-[#ff2b75] text-white text-[9px] font-extrabold w-4 h-4 rounded-full flex items-center justify-center">
-                {totalItems}
-              </span>
-            )}
-          </Link>
-        </div>
-      </div>
-
       <div className="max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-3 sm:py-8 flex-1">
         {/* Desktop Header */}
         <div className="hidden md:flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
           <div>
-            <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Shopping Cart</h1>
+            <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">
+              My Cart <span className="text-gray-500 font-semibold text-xl">({totalItems} Items)</span>
+            </h1>
             <p className="text-xs text-gray-500 mt-1">Review items in your cart and proceed to checkout</p>
           </div>
           {cart.length > 0 && (
@@ -98,7 +87,7 @@ export default function CartPage() {
               onClick={clearCart}
               className="text-xs font-bold text-[#ff2b75] hover:underline transition-colors"
             >
-              Clear Entire Cart
+              Clear Cart
             </button>
           )}
         </div>
@@ -122,8 +111,8 @@ export default function CartPage() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
             {/* Left Column (Items List & Coupon) */}
             <div className="lg:col-span-7 space-y-3.5">
-              {/* Mobile Title Row: "My Cart (3 Items)" & "Clear Cart" */}
-              <div className="flex md:hidden justify-between items-center pt-1">
+              {/* Mobile Title Row: "My Cart (X Items)" & "Clear Cart" - Matches Mockup Exactly */}
+              <div className="flex md:hidden justify-between items-center pt-2 pb-1">
                 <h1 className="text-base font-extrabold text-gray-900 tracking-tight">
                   My Cart <span className="font-semibold text-gray-500">({totalItems} Items)</span>
                 </h1>
@@ -161,11 +150,13 @@ export default function CartPage() {
 
                       {/* Item Image */}
                       <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden bg-pink-50/20 shrink-0 border border-gray-100">
-                        <Image
+                        <LazyImage
                           src={item.imageUrl || "/images/products/party-frock.jpg"}
                           alt={item.name}
                           fill
+                          loading="lazy"
                           className="object-cover"
+                          fallbackText={item.name}
                         />
                       </div>
 
@@ -175,7 +166,7 @@ export default function CartPage() {
                           {item.name}
                         </h3>
                         <p className="text-[11px] text-gray-500 mt-0.5 truncate">
-                          {item.size || "1-2Y / Pink"}
+                          {item.size || "0-12 Months / Standard"}
                         </p>
 
                         {/* Price & Stepper Row */}
@@ -195,6 +186,7 @@ export default function CartPage() {
                               type="button"
                               onClick={() => updateQuantity(item.id, item.quantity - 1)}
                               className="w-6 h-6 rounded bg-white flex items-center justify-center text-gray-700 hover:text-[#ff2b75] shadow-2xs"
+                              aria-label="Decrease quantity"
                             >
                               <Minus size={11} />
                             </button>
@@ -205,6 +197,7 @@ export default function CartPage() {
                               type="button"
                               onClick={() => updateQuantity(item.id, item.quantity + 1)}
                               className="w-6 h-6 rounded bg-white flex items-center justify-center text-gray-700 hover:text-[#ff2b75] shadow-2xs"
+                              aria-label="Increase quantity"
                             >
                               <Plus size={11} />
                             </button>
@@ -237,33 +230,37 @@ export default function CartPage() {
                     <div className="w-6 h-6 rounded-full bg-pink-50 text-[#ff2b75] flex items-center justify-center">
                       <Percent size={13} strokeWidth={2.5} />
                     </div>
-                    <span>{couponApplied ? "Coupon BABYBLOOM10 Applied!" : "Apply Coupon"}</span>
+                    <span>
+                      {appliedCoupon
+                        ? `Coupon '${appliedCoupon.code}' Applied (${appliedCoupon.percent}% OFF)!`
+                        : "Apply Coupon"}
+                    </span>
                   </div>
                   <ChevronRight size={16} className="text-gray-400" />
                 </button>
 
                 {/* Expandable Coupon Input */}
                 {isCouponModalOpen && (
-                  <div className="mt-3 pt-3 border-t border-gray-100 flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="Enter coupon code (e.g. BABYBLOOM10)"
-                      value={couponCode}
-                      onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                      className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs uppercase font-bold focus:outline-none focus:border-[#ff2b75]"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (couponCode.trim()) {
-                          setCouponApplied(true);
-                          setIsCouponModalOpen(false);
-                        }
-                      }}
-                      className="bg-[#ff2b75] text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-[#e01d62]"
-                    >
-                      Apply
-                    </button>
+                  <div className="mt-3 pt-3 border-t border-gray-100">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Enter coupon code (e.g. BABYBLOOM10)"
+                        value={couponCode}
+                        onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                        className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs uppercase font-bold focus:outline-none focus:border-[#ff2b75]"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleApplyCoupon}
+                        className="bg-[#ff2b75] text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-[#e01d62]"
+                      >
+                        Apply
+                      </button>
+                    </div>
+                    {couponError && (
+                      <p className="mt-1.5 text-xs text-red-500 font-semibold">{couponError}</p>
+                    )}
                   </div>
                 )}
               </div>
@@ -274,22 +271,22 @@ export default function CartPage() {
               {/* Price Details Card */}
               <div className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-100 shadow-xs space-y-3">
                 <h2 className="text-xs sm:text-sm font-extrabold text-gray-900">Price Details</h2>
-                
+
                 <div className="flex justify-between text-xs sm:text-sm text-gray-600 font-medium">
                   <span>Subtotal ({totalItems} items)</span>
                   <span className="text-gray-900 font-bold">₹{totalPrice}</span>
                 </div>
 
-                {couponApplied && (
+                {appliedCoupon && (
                   <div className="flex justify-between text-xs sm:text-sm text-green-600 font-semibold">
-                    <span>Coupon Discount (10%)</span>
+                    <span>Coupon Discount ({appliedCoupon.code} - {appliedCoupon.percent}%)</span>
                     <span>-₹{discount}</span>
                   </div>
                 )}
 
                 <div className="flex justify-between text-xs sm:text-sm text-gray-600 font-medium">
                   <span>Shipping</span>
-                  <span className="text-green-600 font-bold uppercase">FREE</span>
+                  <span className="text-emerald-600 font-bold uppercase">FREE</span>
                 </div>
 
                 <hr className="border-gray-100 my-1" />

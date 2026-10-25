@@ -13,9 +13,11 @@ import { Product } from "@/context/CartContext";
 
 interface CategoryListingViewProps {
   title: string;
-  initialProducts: (Product & { mrp?: number })[];
+  initialProducts: (Product & { mrp?: number; style?: string; discountPercent?: number; offerTitle?: string })[];
   subcategories?: string[];
 }
+
+const STYLE_OPTIONS = ["Regular", "Casual", "Party Wear", "Ethnic Wear"];
 
 export default function CategoryListingView({
   title,
@@ -33,12 +35,14 @@ export default function CategoryListingView({
 
     // Filter by subcategory keyword if not 'All'
     if (activeSubcategory !== "All") {
-      const keyword = activeSubcategory.toLowerCase();
-      list = list.filter(
-        (p) =>
-          p.name.toLowerCase().includes(keyword) ||
-          p.description?.toLowerCase().includes(keyword)
-      );
+      const target = activeSubcategory.toLowerCase();
+      list = list.filter((p) => {
+        const matchesStyle = (p.style || "").toLowerCase() === target;
+        const matchesText =
+          p.name.toLowerCase().includes(target) ||
+          (p.description ? p.description.toLowerCase().includes(target) : false);
+        return matchesStyle || matchesText;
+      });
     }
 
     // Sort

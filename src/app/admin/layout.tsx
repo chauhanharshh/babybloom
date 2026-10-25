@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { LayoutDashboard, Package, ShoppingCart, LogOut, Menu, X } from "lucide-react";
+import Image from "next/image";
+import { LayoutDashboard, Package, ShoppingCart, BadgePercent, LogOut, Menu, X, FolderTree } from "lucide-react";
 import { useState } from "react";
 
 export default function AdminLayout({
@@ -16,7 +17,15 @@ export default function AdminLayout({
       {/* Mobile Header */}
       <div className="md:hidden flex items-center justify-between p-4 bg-white border-b border-gray-200 w-full fixed top-0 z-20">
         <Link href="/admin" className="text-xl font-bold text-primary flex items-center gap-2">
-          BabyBloom
+          <div className="relative w-7 h-7 rounded-full overflow-hidden bg-white border border-pink-100 shadow-2xs shrink-0">
+            <Image
+              src="/icons/apple-touch-icon.png"
+              alt="Babybloom Logo"
+              fill
+              className="object-contain"
+            />
+          </div>
+          <span>BabyBloom</span>
           <span className="text-xs font-medium bg-primary/10 text-primary px-2 py-0.5 rounded-full">Admin</span>
         </Link>
         <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 text-gray-600">
@@ -31,8 +40,16 @@ export default function AdminLayout({
         ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"}
       `}>
         <div className="p-6 border-b border-gray-200 hidden md:flex">
-          <Link href="/admin" className="text-2xl font-bold text-primary flex items-center gap-2">
-            BabyBloom
+          <Link href="/admin" className="text-2xl font-bold text-primary flex items-center gap-2.5">
+            <div className="relative w-8 h-8 rounded-full overflow-hidden bg-white border border-pink-100 shadow-2xs shrink-0">
+              <Image
+                src="/icons/apple-touch-icon.png"
+                alt="Babybloom Logo"
+                fill
+                className="object-contain"
+              />
+            </div>
+            <span>BabyBloom</span>
             <span className="text-sm font-medium bg-primary/10 text-primary px-2 py-1 rounded-full">Admin</span>
           </Link>
         </div>
@@ -45,6 +62,14 @@ export default function AdminLayout({
           <Link onClick={() => setIsMobileMenuOpen(false)} href="/admin/products" className="flex items-center gap-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-primary/5 hover:text-primary transition-colors">
             <Package className="w-5 h-5" />
             <span className="font-medium">Products</span>
+          </Link>
+          <Link onClick={() => setIsMobileMenuOpen(false)} href="/admin/categories" className="flex items-center gap-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-primary/5 hover:text-primary transition-colors">
+            <FolderTree className="w-5 h-5" />
+            <span className="font-medium">Categories</span>
+          </Link>
+          <Link onClick={() => setIsMobileMenuOpen(false)} href="/admin/offers-banners" className="flex items-center gap-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-primary/5 hover:text-primary transition-colors">
+            <BadgePercent className="w-5 h-5" />
+            <span className="font-medium">Offers & Banners</span>
           </Link>
           <Link onClick={() => setIsMobileMenuOpen(false)} href="/admin/orders" className="flex items-center gap-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-primary/5 hover:text-primary transition-colors">
             <ShoppingCart className="w-5 h-5" />
