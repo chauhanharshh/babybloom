@@ -160,9 +160,9 @@ export default function Navbar() {
             </Link>
 
             <Link 
-              href="/admin"
+              href="/faq"
               className="p-2 text-gray-700 hover:text-[#ff2b75] transition-colors rounded-full hover:bg-pink-50"
-              title="Account / Admin"
+              title="Help & FAQ"
             >
               <User size={21} />
             </Link>
@@ -236,16 +236,6 @@ export default function Navbar() {
           >
             Contact & Shipping
           </Link>
-          <div className="pt-2 border-t border-pink-100">
-            <Link 
-              href="/admin" 
-              onClick={() => setIsMobileMenuOpen(false)} 
-              className="flex items-center gap-2 text-[#ff2b75] bg-pink-50 hover:bg-pink-100 px-4 py-2.5 rounded-lg text-sm font-bold"
-            >
-              <User size={18} />
-              Admin Panel
-            </Link>
-          </div>
         </div>
       )}
     </header>

@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import { ADMIN_BASE_PATH } from "./admin";
 
 export interface OrderItemEmailData {
   name: string;
@@ -34,8 +35,8 @@ export async function sendOrderNotificationEmail(payload: SendOrderEmailPayload)
     baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000",
   } = payload;
 
-  const approveUrl = `${baseUrl}/admin/orders/approve?id=${orderId}`;
-  const adminOrdersUrl = `${baseUrl}/admin/orders`;
+  const approveUrl = `${baseUrl}${ADMIN_BASE_PATH}/orders/approve?id=${orderId}`;
+  const adminOrdersUrl = `${baseUrl}${ADMIN_BASE_PATH}/orders`;
 
   const itemsRowsHtml = items
     .map(

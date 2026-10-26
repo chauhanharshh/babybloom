@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { CheckCircle2, ShoppingBag, ArrowRight, Clock, MessageSquare, AlertCircle } from "lucide-react";
+import { ADMIN_BASE_PATH } from "@/lib/admin";
 
 function ApproveOrderContent() {
   const searchParams = useSearchParams();
@@ -93,7 +94,7 @@ function ApproveOrderContent() {
             <p className="text-xs text-gray-500">{errorMessage}</p>
             <div className="pt-2">
               <Link
-                href="/admin/orders"
+                href={`${ADMIN_BASE_PATH}/orders`}
                 className="inline-block bg-[#ff2b75] hover:bg-[#e01d62] text-white text-xs font-bold px-6 py-2.5 rounded-xl shadow-xs"
               >
                 Go to Admin Orders
@@ -152,7 +153,7 @@ function ApproveOrderContent() {
             {/* Action Buttons */}
             <div className="pt-2 flex flex-col gap-2.5">
               <Link
-                href="/admin/orders"
+                href={`${ADMIN_BASE_PATH}/orders`}
                 className="w-full bg-[#ff2b75] hover:bg-[#e01d62] text-white py-3.5 px-4 rounded-xl font-bold text-sm shadow-md shadow-pink-500/20 active:scale-98 transition-all flex items-center justify-center gap-2"
               >
                 <ShoppingBag size={17} />
@@ -174,7 +175,7 @@ function ApproveOrderContent() {
               )}
 
               <Link
-                href="/admin"
+                href={ADMIN_BASE_PATH}
                 className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 py-2.5 px-4 rounded-xl font-bold text-xs text-center transition-colors"
               >
                 Go to Admin Dashboard

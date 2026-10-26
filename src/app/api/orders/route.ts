@@ -159,6 +159,15 @@ export async function DELETE() {
   try {
     const deletedItems = await prisma.orderItem.deleteMany();
     const deletedOrders = await prisma.order.deleteMany();
+
+    // Reset sequence so future orders start cleanly from #1 again
+    try {
+      await prisma.$executeRawUnsafe(`ALTER SEQUENCE "Order_id_seq" RESTART WITH 1;`);
+      await prisma.$executeRawUnsafe(`ALTER SEQUENCE "OrderItem_id_seq" RESTART WITH 1;`);
+    } catch (seqErr) {
+      console.warn("Notice: Sequence reset skipped:", seqErr);
+    }
+
     return NextResponse.json({
       success: true,
       deletedOrders: deletedOrders.count,

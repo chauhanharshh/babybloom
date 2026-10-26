@@ -6,6 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import ConfirmDialog from "@/components/admin/ConfirmDialog";
 import LazyImage from "@/components/LazyImage";
+import { ADMIN_BASE_PATH } from "@/lib/admin";
 
 type Product = {
   id: number;
@@ -342,7 +343,7 @@ export default function AdminProducts() {
             <span className="hidden sm:inline">Refresh</span>
           </button>
           <Link
-            href="/admin/categories"
+            href={`${ADMIN_BASE_PATH}/categories`}
             className="bg-white border border-gray-200 text-gray-700 px-4 py-2.5 rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-gray-50 hover:border-gray-300 transition-colors shadow-xs text-sm"
           >
             <FolderTree className="w-4 h-4 text-[#ff2b75]" />
