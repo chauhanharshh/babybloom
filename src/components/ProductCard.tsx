@@ -25,7 +25,7 @@ export default function ProductCard({ product }: ProductCardProps) {
       <div className="relative aspect-square mb-2 sm:mb-2.5 rounded-xl overflow-hidden bg-pink-50/20 flex items-center justify-center">
         <Link href={`/product/${product.id}`} className="absolute inset-0 z-0">
           <LazyImage
-            src={product.imageUrl || "/images/products/party-frock.jpg"}
+            src={product.imageUrl || ""}
             alt={product.name}
             fill
             loading="lazy"

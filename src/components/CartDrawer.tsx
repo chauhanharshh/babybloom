@@ -92,7 +92,7 @@ export default function CartDrawer() {
                 {/* Item Image */}
                 <div className="relative shrink-0 w-16 h-16 rounded-xl overflow-hidden bg-pink-50/20 border border-pink-100 flex items-center justify-center">
                   <LazyImage
-                    src={item.imageUrl || "/images/products/party-frock.jpg"}
+                    src={item.imageUrl || ""}
                     alt={item.name}
                     fill
                     loading="lazy"

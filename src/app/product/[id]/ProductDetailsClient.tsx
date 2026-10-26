@@ -46,13 +46,8 @@ export default function ProductDetailsClient({ product }: ProductDetailsClientPr
   const mrp = product.mrp || Math.round(product.price * 1.5);
   const discountPercent = Math.round(((mrp - product.price) / mrp) * 100);
 
-  // Gallery images (use primary image + secondary angles)
-  const images = [
-    product.imageUrl || "/images/products/party-frock.jpg",
-    product.imageUrl || "/images/products/party-frock.jpg",
-    product.imageUrl || "/images/products/party-frock.jpg",
-    product.imageUrl || "/images/products/party-frock.jpg",
-  ];
+  // Gallery images (use database image)
+  const images = product.imageUrl ? [product.imageUrl] : [""];
 
   const handleAddToCart = () => {
     for (let i = 0; i < quantity; i++) {
@@ -168,43 +163,47 @@ export default function ProductDetailsClient({ product }: ProductDetailsClientPr
               </div>
 
               {/* Dots Indicator */}
-              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-10">
-                {images.map((_, idx) => (
+              {images.length > 1 && (
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-10">
+                  {images.map((_, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setCurrentImageIndex(idx)}
+                      className={`transition-all rounded-full ${
+                        idx === currentImageIndex
+                          ? "w-5 h-1.5 bg-[#ff2b75]"
+                          : "w-1.5 h-1.5 bg-gray-300"
+                      }`}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Desktop Thumbnails */}
+            {images.length > 1 && (
+              <div className="hidden md:flex gap-3">
+                {images.map((img, idx) => (
                   <button
                     key={idx}
                     type="button"
                     onClick={() => setCurrentImageIndex(idx)}
-                    className={`transition-all rounded-full ${
-                      idx === currentImageIndex
-                        ? "w-5 h-1.5 bg-[#ff2b75]"
-                        : "w-1.5 h-1.5 bg-gray-300"
+                    className={`relative w-20 h-20 rounded-2xl overflow-hidden border-2 transition-all ${
+                      idx === currentImageIndex ? "border-[#ff2b75] shadow-xs" : "border-gray-200 hover:border-gray-300"
                     }`}
-                  />
+                  >
+                    <LazyImage
+                      src={img}
+                      alt={`${product.name} thumbnail ${idx + 1}`}
+                      fill
+                      loading="lazy"
+                      className="object-cover"
+                    />
+                  </button>
                 ))}
               </div>
-            </div>
-
-            {/* Desktop Thumbnails */}
-            <div className="hidden md:flex gap-3">
-              {images.map((img, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => setCurrentImageIndex(idx)}
-                  className={`relative w-20 h-20 rounded-2xl overflow-hidden border-2 transition-all ${
-                    idx === currentImageIndex ? "border-[#ff2b75] shadow-xs" : "border-gray-200 hover:border-gray-300"
-                  }`}
-                >
-                  <LazyImage
-                    src={img}
-                    alt={`${product.name} thumbnail ${idx + 1}`}
-                    fill
-                    loading="lazy"
-                    className="object-cover"
-                  />
-                </button>
-              ))}
-            </div>
+            )}
           </div>
 
           {/* Right Column: Product Details Body */}

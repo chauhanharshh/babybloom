@@ -151,7 +151,7 @@ export default function CartPage() {
                       {/* Item Image */}
                       <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden bg-pink-50/20 shrink-0 border border-gray-100">
                         <LazyImage
-                          src={item.imageUrl || "/images/products/party-frock.jpg"}
+                          src={item.imageUrl || ""}
                           alt={item.name}
                           fill
                           loading="lazy"

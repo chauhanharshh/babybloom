@@ -11,82 +11,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useCart, Product } from "@/context/CartContext";
 
-const SAMPLE_PRODUCTS: (Product & { mrp?: number })[] = [
-  {
-    id: "1",
-    name: "Pink Party Frock",
-    price: 999,
-    mrp: 1499,
-    imageUrl: "/images/products/party-frock.jpg",
-    ageGroup: "1-6 Yrs",
-    category: "Girls",
-  },
-  {
-    id: "3",
-    name: "Floral Summer Dress",
-    price: 699,
-    mrp: 1299,
-    imageUrl: "/images/products/floral-dress.jpg",
-    ageGroup: "1-5 Yrs",
-    category: "Girls",
-  },
-  {
-    id: "9",
-    name: "Yellow Frock",
-    price: 749,
-    mrp: 1199,
-    imageUrl: "/images/categories/frocks.jpg",
-    ageGroup: "1-6 Yrs",
-    category: "Girls",
-  },
-  {
-    id: "5",
-    name: "Cute Denim Dress",
-    price: 899,
-    mrp: 1399,
-    imageUrl: "/images/products/denim-dungaree.jpg",
-    ageGroup: "1-4 Yrs",
-    category: "Girls",
-  },
-  {
-    id: "2",
-    name: "Stylish Boy Set",
-    price: 799,
-    mrp: 1199,
-    imageUrl: "/images/products/boy-set.jpg",
-    ageGroup: "1-6 Yrs",
-    category: "Boys",
-  },
-  {
-    id: "4",
-    name: "Cute Hoodie Set",
-    price: 899,
-    mrp: 1299,
-    imageUrl: "/images/products/hoodie-set.jpg",
-    ageGroup: "2-6 Yrs",
-    category: "Boys",
-  },
-  {
-    id: "7",
-    name: "Soft Cotton Romper",
-    price: 499,
-    mrp: 749,
-    imageUrl: "/images/categories/newborn-romper.jpg",
-    ageGroup: "0-12 Months",
-    category: "Newborn",
-  },
-  {
-    id: "10",
-    name: "Kids Animal Sweatshirt",
-    price: 749,
-    mrp: 1124,
-    imageUrl: "/images/categories/sweatshirts.jpg",
-    ageGroup: "1-6 Yrs",
-    category: "Boys",
-  },
-];
-
-const RECENT_SEARCHES = ["frock", "dress", "boy set", "hoodie"];
+const RECENT_SEARCHES = ["frock", "dress", "boy set", "hoodie", "romper"];
 
 export default function SearchPage() {
   return (
@@ -99,31 +24,33 @@ export default function SearchPage() {
 function SearchPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const initialQuery = searchParams.get("q") || "frock";
+  const initialQuery = searchParams.get("q") || "";
   const [query, setQuery] = useState(initialQuery);
-  const [products, setProducts] = useState<(Product & { mrp?: number })[]>(SAMPLE_PRODUCTS);
+  const [products, setProducts] = useState<(Product & { mrp?: number })[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const { totalItems } = useCart();
 
-  // Fetch live products from DB if available
+  // Fetch live products from DB
   useEffect(() => {
     fetch("/api/products")
       .then((res) => res.json())
       .then((data) => {
-        if (Array.isArray(data) && data.length > 0) {
+        if (Array.isArray(data)) {
           setProducts(
             data.map((p) => ({
               id: p.id.toString(),
               name: p.name,
               price: p.price,
               mrp: Math.round(p.price * 1.5),
-              imageUrl: p.imageUrl || "/images/products/party-frock.jpg",
+              imageUrl: p.imageUrl || "",
               ageGroup: p.ageGroup,
               category: p.category,
             }))
           );
         }
       })
-      .catch(() => {});
+      .catch((err) => console.error("Could not fetch products:", err))
+      .finally(() => setIsLoading(false));
   }, []);
 
   const searchResults = useMemo(() => {
@@ -245,7 +172,12 @@ function SearchPageContent() {
         </div>
 
         {/* Responsive Product Grid */}
-        {searchResults.length === 0 ? (
+        {isLoading ? (
+          <div className="py-20 text-center space-y-2">
+            <div className="w-8 h-8 border-3 border-[#ff2b75] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+            <p className="font-bold text-gray-700 text-sm">Loading products from store...</p>
+          </div>
+        ) : searchResults.length === 0 ? (
           <div className="py-20 text-center space-y-2">
             <p className="font-bold text-gray-700 text-base">No products matching "{query}"</p>
             <p className="text-xs text-gray-400">Try searching with a different term like frock, boy set, or romper.</p>

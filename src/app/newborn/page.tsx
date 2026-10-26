@@ -42,7 +42,7 @@ export default async function NewbornPage() {
       id: p.id.toString(),
       name: p.name,
       price: offer.price,
-      imageUrl: p.imageUrl || "/images/products/fleece-set.jpg",
+      imageUrl: p.imageUrl || "",
       ageGroup: p.ageGroup,
       category: p.category,
       style: p.style,
@@ -55,9 +55,7 @@ export default async function NewbornPage() {
 
   const dynamicSubcategories = [
     "All",
-    ...(categoryRecord?.subcategories?.length
-      ? categoryRecord.subcategories.map((s) => s.name)
-      : ["Regular", "Rompers", "Fleece Sets", "Innerwear", "Sleepsuits"]),
+    ...(categoryRecord?.subcategories?.map((s) => s.name) || []),
   ];
 
   return (

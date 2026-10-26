@@ -20,6 +20,10 @@ interface CategoryScrollRowProps {
 export default function CategoryScrollRow({ categories }: CategoryScrollRowProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  if (!categories || categories.length === 0) {
+    return null;
+  }
+
   const scrollRight = () => {
     if (scrollRef.current) {
       scrollRef.current.scrollBy({ left: 160, behavior: "smooth" });
@@ -31,7 +35,7 @@ export default function CategoryScrollRow({ categories }: CategoryScrollRowProps
       {/* Scrollable Track */}
       <div
         ref={scrollRef}
-        className="flex overflow-x-auto no-scrollbar gap-3 sm:gap-4 px-4 sm:px-6 lg:px-8 scroll-smooth lg:grid lg:grid-cols-8 lg:overflow-visible"
+        className="flex overflow-x-auto no-scrollbar gap-3 sm:gap-6 px-4 sm:px-6 lg:px-8 scroll-smooth lg:flex lg:justify-center lg:flex-wrap lg:overflow-visible"
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
         {categories.map((cat, idx) => (

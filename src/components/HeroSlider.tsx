@@ -12,61 +12,40 @@ export interface Banner {
   alt: string;
 }
 
-// High-resolution FirstCry-style banners for Babybloom
-const DEFAULT_BANNERS: Banner[] = [
-  {
-    id: 1,
-    image: "/images/banners/babybloom-hero-banner.png",
-    href: "/shop",
-    alt: "Babybloom - Dress Your Little Ones in Style & Smile",
-  },
-  {
-    id: 2,
-    image: "https://images.unsplash.com/photo-1519689680058-324335c77eba?auto=format&fit=crop&w=2000&q=85",
-    href: "/shop",
-    alt: "Babybloom Festive Collection - Flat Discount on Premium Kids Wear",
-  },
-  {
-    id: 3,
-    image: "https://images.unsplash.com/photo-1522771930-78848d9293e8?auto=format&fit=crop&w=2000&q=85",
-    href: "/girls",
-    alt: "Girls Wear Frocks & Party Dresses",
-  },
-  {
-    id: 4,
-    image: "https://images.unsplash.com/photo-1514090458221-65bb69cf63e6?auto=format&fit=crop&w=2000&q=85",
-    href: "/boys",
-    alt: "Boys Fashion Sets, Tees and Dungarees",
-  },
-];
-
 interface HeroSliderProps {
   banners?: Banner[];
 }
 
-export default function HeroSlider({ banners = DEFAULT_BANNERS }: HeroSliderProps) {
+export default function HeroSlider({ banners }: HeroSliderProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const touchStartXRef = useRef<number | null>(null);
   const touchEndXRef = useRef<number | null>(null);
   const hasMovedRef = useRef<boolean>(false);
 
-  const total = banners.length;
+  const total = banners?.length || 0;
 
   const nextSlide = useCallback(() => {
+    if (total <= 0) return;
     setCurrentIndex((prev) => (prev + 1) % total);
   }, [total]);
 
   const prevSlide = useCallback(() => {
+    if (total <= 0) return;
     setCurrentIndex((prev) => (prev - 1 + total) % total);
   }, [total]);
 
-  // Auto-play timer (resumes when not hovered/touched)
+  // Auto-play timer
   useEffect(() => {
     if (isPaused || total <= 1) return;
     const interval = setInterval(nextSlide, 6000);
     return () => clearInterval(interval);
   }, [isPaused, nextSlide, total]);
+
+  if (!banners || banners.length === 0) {
+    return null;
+  }
+
 
   // Touch Swipe Handlers for mobile friendliness
   const handleTouchStart = (e: React.TouchEvent) => {

@@ -37,78 +37,9 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-// Sample default items for initial demo
-const DEFAULT_INITIAL_CART: CartItem[] = [
-  {
-    id: "1",
-    name: "Pink Party Frock",
-    price: 999,
-    mrp: 1499,
-    quantity: 1,
-    size: "1-2Y / Pink",
-    imageUrl: "/images/products/party-frock.jpg",
-    ageGroup: "1-6 Yrs",
-  },
-  {
-    id: "2",
-    name: "Stylish Boy Set",
-    price: 799,
-    mrp: 1199,
-    quantity: 1,
-    size: "2-3Y / White-Blue",
-    imageUrl: "/images/products/boy-set.jpg",
-    ageGroup: "1-6 Yrs",
-  },
-  {
-    id: "3",
-    name: "Yellow Summer Dress",
-    price: 749,
-    mrp: 1199,
-    quantity: 1,
-    size: "3-4Y / Yellow",
-    imageUrl: "/images/products/floral-dress.jpg",
-    ageGroup: "1-5 Yrs",
-  },
-];
-
-const DEFAULT_INITIAL_WISHLIST: Product[] = [
-  {
-    id: "1",
-    name: "Beautiful Party Frock",
-    price: 999,
-    mrp: 1499,
-    imageUrl: "/images/products/party-frock.jpg",
-    ageGroup: "1-6 Yrs",
-  },
-  {
-    id: "2",
-    name: "Stylish Boy Set",
-    price: 799,
-    mrp: 1199,
-    imageUrl: "/images/products/boy-set.jpg",
-    ageGroup: "1-6 Yrs",
-  },
-  {
-    id: "4",
-    name: "Cute Hoodie Set",
-    price: 899,
-    mrp: 1399,
-    imageUrl: "/images/products/hoodie-set.jpg",
-    ageGroup: "2-6 Yrs",
-  },
-  {
-    id: "3",
-    name: "Floral Summer Dress",
-    price: 669,
-    mrp: 1299,
-    imageUrl: "/images/products/floral-dress.jpg",
-    ageGroup: "1-5 Yrs",
-  },
-];
-
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [cart, setCart] = useState<CartItem[]>(DEFAULT_INITIAL_CART);
-  const [wishlist, setWishlist] = useState<Product[]>(DEFAULT_INITIAL_WISHLIST);
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [wishlist, setWishlist] = useState<Product[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; percent: number } | null>(null);
 

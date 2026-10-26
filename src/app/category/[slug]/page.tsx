@@ -66,7 +66,7 @@ export default async function DynamicCategoryPage({ params }: PageProps) {
       id: p.id.toString(),
       name: p.name,
       price: offer.price,
-      imageUrl: p.imageUrl || "/images/products/party-frock.jpg",
+      imageUrl: p.imageUrl || "",
       ageGroup: p.ageGroup,
       category: p.category,
       style: p.style,
@@ -79,9 +79,7 @@ export default async function DynamicCategoryPage({ params }: PageProps) {
 
   const dynamicSubcategories = [
     "All",
-    ...(categoryRecord.subcategories?.length
-      ? categoryRecord.subcategories.map((s) => s.name)
-      : ["Regular", "Casual", "Party Wear"]),
+    ...(categoryRecord.subcategories?.map((s) => s.name) || []),
   ];
 
   return (

@@ -114,3 +114,26 @@ export async function PATCH(
   }
 }
 
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const orderId = parseInt(id);
+
+    await prisma.$transaction(async (tx) => {
+      await tx.orderItem.deleteMany({ where: { orderId } });
+      await tx.order.delete({ where: { id: orderId } });
+    });
+
+    return NextResponse.json({ success: true, deletedId: orderId });
+  } catch (error) {
+    console.error("Failed to delete order:", error);
+    return NextResponse.json(
+      { error: "Failed to delete order", details: (error as Error)?.message || String(error) },
+      { status: 500 }
+    );
+  }
+}
+

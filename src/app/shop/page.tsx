@@ -40,7 +40,7 @@ export default async function ShopPage() {
       id: p.id.toString(),
       name: p.name,
       price: offer.price,
-      imageUrl: p.imageUrl || "/images/products/party-frock.jpg",
+      imageUrl: p.imageUrl || "",
       ageGroup: p.ageGroup,
       category: p.category,
       style: p.style,
@@ -57,9 +57,7 @@ export default async function ShopPage() {
 
   const dynamicSubcategories = [
     "All",
-    ...(allSubNames.length > 0
-      ? allSubNames
-      : ["Frocks", "Rompers", "Sets", "Sweatshirts", "Jeans", "Party Wear", "Casual"]),
+    ...allSubNames,
   ];
 
   return (

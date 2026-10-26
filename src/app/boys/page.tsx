@@ -42,7 +42,7 @@ export default async function BoysPage() {
       id: p.id.toString(),
       name: p.name,
       price: offer.price,
-      imageUrl: p.imageUrl || "/images/products/boy-set.jpg",
+      imageUrl: p.imageUrl || "",
       ageGroup: p.ageGroup,
       category: p.category,
       style: p.style,
@@ -55,9 +55,7 @@ export default async function BoysPage() {
 
   const dynamicSubcategories = [
     "All",
-    ...(categoryRecord?.subcategories?.length
-      ? categoryRecord.subcategories.map((s) => s.name)
-      : ["Regular", "Casual", "Party Wear", "Ethnic Wear", "T-Shirts", "Jeans", "Sets"]),
+    ...(categoryRecord?.subcategories?.map((s) => s.name) || []),
   ];
 
   return (

@@ -21,123 +21,6 @@ import {
 
 export const revalidate = 0; // Fresh inventory data
 
-// Best seller template items matching reference image
-const SAMPLE_BEST_SELLERS = [
-  {
-    id: "sample-1",
-    name: "Beautiful Party Frock",
-    price: 999,
-    mrp: 1499,
-    imageUrl: "/images/products/party-frock.jpg",
-    ageGroup: "1-6 Yrs",
-    category: "Girls",
-  },
-  {
-    id: "sample-2",
-    name: "Stylish Boy Set",
-    price: 799,
-    mrp: 1199,
-    imageUrl: "/images/products/boy-set.jpg",
-    ageGroup: "1-6 Yrs",
-    category: "Boys",
-  },
-  {
-    id: "sample-3",
-    name: "Summer Floral Dress",
-    price: 699,
-    mrp: 999,
-    imageUrl: "/images/products/floral-dress.jpg",
-    ageGroup: "1-5 Yrs",
-    category: "Girls",
-  },
-  {
-    id: "sample-4",
-    name: "Cute Hoodie Set",
-    price: 899,
-    mrp: 1299,
-    imageUrl: "/images/products/hoodie-set.jpg",
-    ageGroup: "2-6 Yrs",
-    category: "Boys",
-  },
-  {
-    id: "sample-5",
-    name: "Denim Dungaree",
-    price: 799,
-    mrp: 1199,
-    imageUrl: "/images/products/denim-dungaree.jpg",
-    ageGroup: "1-4 Yrs",
-    category: "Girls",
-  },
-  {
-    id: "sample-6",
-    name: "Fleece Wear Set",
-    price: 999,
-    mrp: 1499,
-    imageUrl: "/images/products/fleece-set.jpg",
-    ageGroup: "0-3 Yrs",
-    category: "Newborn",
-  },
-];
-
-const CATEGORIES = [
-  {
-    title: "Newborn",
-    sub: "(0-12 Months)",
-    href: "/newborn",
-    bg: "bg-[#ffe4ec] border-[#fecdd3]",
-    image: "/images/categories/newborn-romper.jpg",
-  },
-  {
-    title: "Girls Wear",
-    sub: "(1-9 Years)",
-    href: "/girls",
-    bg: "bg-[#fef3c7] border-[#fde68a]",
-    image: "/images/categories/girls-wear.jpg",
-  },
-  {
-    title: "Boys Wear",
-    sub: "(1-9 Years)",
-    href: "/boys",
-    bg: "bg-[#e0f2fe] border-[#bae6fd]",
-    image: "/images/categories/boys-wear.jpg",
-  },
-  {
-    title: "Sweatshirts",
-    sub: "& Hoodies",
-    href: "/shop",
-    bg: "bg-[#fce7f3] border-[#fbcfe8]",
-    image: "/images/categories/sweatshirts.jpg",
-  },
-  {
-    title: "Frocks &",
-    sub: "Dresses",
-    href: "/girls",
-    bg: "bg-[#f3e8ff] border-[#e9d5ff]",
-    image: "/images/categories/frocks.jpg",
-  },
-  {
-    title: "Sets & Co-ord",
-    sub: "Sets",
-    href: "/shop",
-    bg: "bg-[#ffedd5] border-[#fed7aa]",
-    image: "/images/categories/coord-sets.jpg",
-  },
-  {
-    title: "Pants &",
-    sub: "Jeans",
-    href: "/boys",
-    bg: "bg-[#e0f2fe] border-[#bae6fd]",
-    image: "/images/categories/pants-jeans.jpg",
-  },
-  {
-    title: "Innerwear",
-    sub: "(Soft Cotton)",
-    href: "/newborn",
-    bg: "bg-[#ffe4ec] border-[#fecdd3]",
-    image: "/images/categories/innerwear.jpg",
-  },
-];
-
 export default async function Home() {
   // Fetch latest products, active hero banners, active offers, and categories
   type DbProduct = Awaited<ReturnType<typeof prisma.product.findMany>>[number];
@@ -179,24 +62,21 @@ export default async function Home() {
   }
 
   // Format Hero Banners from database
-  const heroBanners = dbBanners.length > 0
-    ? dbBanners.map((b) => ({
-        id: b.id,
-        image: b.imageUrl,
-        href: b.linkUrl || "/shop",
-        alt: b.alt || b.title || "Babybloom Hero Banner",
-      }))
-    : undefined;
+  const heroBanners = dbBanners.map((b) => ({
+    id: b.id,
+    image: b.imageUrl,
+    href: b.linkUrl || "/shop",
+    alt: b.alt || b.title || "Babybloom Hero Banner",
+  }));
 
   // Display DB products directly with active offers dynamically applied
-  const baseProducts = dbProducts.length > 0 ? dbProducts : SAMPLE_BEST_SELLERS;
-  const displayProducts = baseProducts.map((p) => {
+  const displayProducts = dbProducts.map((p) => {
     const offer = calculateProductOffer(p.id, p.category, p.price, activeOffers);
     return {
       id: p.id.toString(),
       name: p.name,
       price: offer.price,
-      imageUrl: p.imageUrl || "/images/products/party-frock.jpg",
+      imageUrl: p.imageUrl || "",
       ageGroup: p.ageGroup,
       mrp: offer.mrp,
       discountPercent: offer.discountPercent,
@@ -217,57 +97,51 @@ export default async function Home() {
     boys: "/boys",
     newborn: "/newborn",
   };
-  const displayCategories = dbCategories.length > 0
-    ? dbCategories.map((c, i) => ({
-        title: c.name,
-        sub: c.subcategories.length > 0 ? `(${c.subcategories.length} Styles)` : "",
-        href: knownRoutes[c.slug.toLowerCase()] || `/category/${c.slug}`,
-        bg: pastelBgs[i % pastelBgs.length],
-        image:
-          c.imageUrl ||
-          (c.slug.toLowerCase() === "girls"
-            ? "/images/categories/girls-wear.jpg"
-            : c.slug.toLowerCase() === "boys"
-            ? "/images/categories/boys-wear.jpg"
-            : "/images/categories/newborn-romper.jpg"),
-      }))
-    : CATEGORIES;
+  const displayCategories = dbCategories.map((c, i) => ({
+    title: c.name,
+    sub: c.subcategories.length > 0 ? `(${c.subcategories.length} Styles)` : "",
+    href: knownRoutes[c.slug.toLowerCase()] || `/category/${c.slug}`,
+    bg: pastelBgs[i % pastelBgs.length],
+    image: c.imageUrl || "",
+  }));
 
   return (
     <main className="min-h-screen bg-white flex flex-col pb-16 md:pb-0">
       <Navbar />
       <CartDrawer />
 
-      {/* 1. Babybloom Hero Banner Slider (Live dynamic banners from Admin Panel) */}
-      <HeroSlider banners={heroBanners} />
+      {/* 1. Babybloom Hero Banner Slider (Live dynamic banners from Admin Panel / DB) */}
+      {heroBanners.length > 0 && <HeroSlider banners={heroBanners} />}
 
       {/* 2. Category Quick-Nav Row (Live dynamic categories from DB) */}
-      <CategoryScrollRow categories={displayCategories} />
+      {displayCategories.length > 0 && <CategoryScrollRow categories={displayCategories} />}
 
       {/* 3. "♥ Our Best Sellers ♥" Heading with "See All >" on the right */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-3 sm:pt-6 pb-4 w-full">
-        <div className="flex justify-between items-center mb-3 sm:mb-5">
-          <h2 className="text-base sm:text-2xl font-extrabold text-[#ff2b75] flex items-center gap-1.5">
-            <span>♥</span>
-            <span className="text-gray-900">Our Best Sellers</span>
-            <span>♥</span>
-          </h2>
-          <Link 
-            href="/shop" 
-            className="text-[#ff2b75] hover:text-[#e01d62] text-xs sm:text-sm font-bold flex items-center gap-0.5 hover:underline transition-colors"
-          >
-            <span>See All</span>
-            <ChevronRight size={16} />
-          </Link>
-        </div>
+      {displayProducts.length > 0 && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-3 sm:pt-6 pb-4 w-full">
+          <div className="flex justify-between items-center mb-3 sm:mb-5">
+            <h2 className="text-base sm:text-2xl font-extrabold text-[#ff2b75] flex items-center gap-1.5">
+              <span>♥</span>
+              <span className="text-gray-900">Our Best Sellers</span>
+              <span>♥</span>
+            </h2>
+            <Link 
+              href="/shop" 
+              className="text-[#ff2b75] hover:text-[#e01d62] text-xs sm:text-sm font-bold flex items-center gap-0.5 hover:underline transition-colors"
+            >
+              <span>See All</span>
+              <ChevronRight size={16} />
+            </Link>
+          </div>
 
-        {/* 6 Best Sellers Grid (Responsive: 2 on mobile, 3 on tablet, 6 on desktop) */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-4">
-          {displayProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
-      </section>
+          {/* Best Sellers Grid (Responsive: 2 on mobile, 3 on tablet, 6 on desktop) */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-4">
+            {displayProducts.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* 4. Trust / Feature Badges Strip (All 3 in 1 row with dividers matching Reference Image) */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-6 w-full">

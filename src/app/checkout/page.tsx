@@ -50,9 +50,9 @@ export default function CheckoutPage() {
 
   const discount = appliedCoupon ? Math.round(totalPrice * (appliedCoupon.percent / 100)) : 0;
   const finalTotal = Math.max(0, totalPrice - discount);
-  const displaySubtotal = totalPrice > 0 ? totalPrice : 404;
-  const displayTotal = totalPrice > 0 ? finalTotal : 404;
-  const displayItemsCount = totalItems > 0 ? totalItems : 1;
+  const displaySubtotal = totalPrice;
+  const displayTotal = finalTotal;
+  const displayItemsCount = totalItems;
 
   const handleSaveAddress = (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,16 +61,14 @@ export default function CheckoutPage() {
   };
 
   const handlePlaceOrder = async () => {
+    if (cart.length === 0) {
+      alert("Your cart is empty! Please add products before placing an order.");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      // Items to send
-      const orderItems = cart.length > 0 
-        ? cart 
-        : [
-            { id: "1", name: "Pink Party Frock", price: 999, quantity: 1, ageGroup: "1-2 Yrs" },
-            { id: "2", name: "Stylish Boy Set", price: 799, quantity: 1, ageGroup: "2-3 Yrs" },
-            { id: "3", name: "Yellow Summer Dress", price: 749, quantity: 1, ageGroup: "3-4 Yrs" },
-          ];
+      const orderItems = cart;
 
       const res = await fetch("/api/orders", {
         method: "POST",
@@ -194,6 +192,22 @@ export default function CheckoutPage() {
                 className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 py-3 rounded-xl font-bold text-xs text-center transition-colors"
               >
                 Continue Shopping
+              </Link>
+            </div>
+          </div>
+        ) : cart.length === 0 ? (
+          <div className="max-w-md mx-auto bg-white rounded-3xl p-8 border border-pink-100 shadow-sm text-center space-y-4 my-8">
+            <div className="w-16 h-16 rounded-full bg-pink-50 text-[#ff2b75] flex items-center justify-center mx-auto">
+              <ShoppingBag size={32} />
+            </div>
+            <h2 className="text-xl font-extrabold text-gray-900">Your Cart is Empty</h2>
+            <p className="text-xs text-gray-500">Please add items from our store before proceeding to checkout.</p>
+            <div className="pt-2">
+              <Link 
+                href="/shop" 
+                className="inline-block bg-[#ff2b75] hover:bg-[#e01d62] text-white px-6 py-2.5 rounded-full font-bold text-xs shadow-xs transition-colors"
+              >
+                Explore Products
               </Link>
             </div>
           </div>

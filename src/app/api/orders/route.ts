@@ -154,3 +154,18 @@ export async function GET() {
     return NextResponse.json({ error: "Failed to fetch orders" }, { status: 500 });
   }
 }
+
+export async function DELETE() {
+  try {
+    const deletedItems = await prisma.orderItem.deleteMany();
+    const deletedOrders = await prisma.order.deleteMany();
+    return NextResponse.json({
+      success: true,
+      deletedOrders: deletedOrders.count,
+      deletedItems: deletedItems.count,
+    });
+  } catch (error) {
+    console.error("Failed to clear orders:", error);
+    return NextResponse.json({ error: "Failed to clear orders" }, { status: 500 });
+  }
+}

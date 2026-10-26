@@ -22,7 +22,7 @@ const STYLE_OPTIONS = ["Regular", "Casual", "Party Wear", "Ethnic Wear"];
 export default function CategoryListingView({
   title,
   initialProducts,
-  subcategories = ["All", "Frocks", "Tops", "Sets", "Dresses"],
+  subcategories = ["All"],
 }: CategoryListingViewProps) {
   const router = useRouter();
   const [activeSubcategory, setActiveSubcategory] = useState("All");

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { 
   Plus, 
   Search, 
@@ -13,7 +13,9 @@ import {
   Loader2, 
   Check, 
   Package,
-  AlertCircle
+  AlertCircle,
+  UploadCloud,
+  ImageIcon
 } from "lucide-react";
 import Image from "next/image";
 import ConfirmDialog from "@/components/admin/ConfirmDialog";
@@ -52,6 +54,9 @@ export default function AdminCategories() {
   });
   const [categorySaving, setCategorySaving] = useState(false);
   const [categoryError, setCategoryError] = useState("");
+  const [imageUploading, setImageUploading] = useState(false);
+  const [imageUploadError, setImageUploadError] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Inline Subcategory Adding State (map of categoryId -> input string)
   const [subInputs, setSubInputs] = useState<Record<number, string>>({});
@@ -147,9 +152,55 @@ export default function AdminCategories() {
   const totalSubcategories = categories.reduce((sum, c) => sum + (c.subcategories?.length || 0), 0);
   const totalProducts = categories.reduce((sum, c) => sum + (c.productCount || 0), 0);
 
+  const uploadToCloudinary = async (file: File): Promise<string> => {
+    const data = new FormData();
+    data.append("file", file);
+    data.append("upload_preset", "bb_uploads");
+    const res = await fetch(
+      "https://api.cloudinary.com/v1_1/x3mloqgq/image/upload",
+      { method: "POST", body: data }
+    );
+    if (!res.ok) throw new Error("Cloudinary upload failed");
+    const json = await res.json();
+    return json.secure_url as string;
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImageUploading(true);
+    setImageUploadError("");
+    try {
+      const url = await uploadToCloudinary(file);
+      setCategoryForm((prev) => ({ ...prev, imageUrl: url }));
+      showToast("Category image successfully uploaded!");
+    } catch (err) {
+      console.warn("Cloudinary upload failed, falling back to local base64 reader:", err);
+      // Fallback: convert to base64 DataURL so local file always uploads seamlessly
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === "string") {
+          setCategoryForm((prev) => ({ ...prev, imageUrl: reader.result as string }));
+          showToast("Category image loaded from device!");
+        }
+        setImageUploading(false);
+      };
+      reader.onerror = () => {
+        setImageUploadError("Image read failed. Please try another image or paste URL.");
+        setImageUploading(false);
+      };
+      reader.readAsDataURL(file);
+      return;
+    } finally {
+      setImageUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
   // Open modal for Create or Edit
   const handleOpenCategoryModal = (cat: Category | null = null) => {
     setCategoryError("");
+    setImageUploadError("");
     if (cat) {
       setEditingCategory(cat);
       setCategoryForm({
@@ -174,6 +225,7 @@ export default function AdminCategories() {
     setIsCategoryModalOpen(false);
     setEditingCategory(null);
     setCategoryError("");
+    setImageUploadError("");
   };
 
   const handleSaveCategory = async (e: React.FormEvent) => {
@@ -644,18 +696,103 @@ export default function AdminCategories() {
                 />
               </div>
 
-              {/* Image URL */}
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
-                  Image URL (Optional)
-                </label>
-                <input
-                  type="url"
-                  placeholder="https://... or /images/categories/..."
-                  value={categoryForm.imageUrl}
-                  onChange={(e) => setCategoryForm({ ...categoryForm, imageUrl: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#ff2b75]/20 focus:border-[#ff2b75] transition-colors"
-                />
+              {/* Category Image (Local Device Upload + URL Option) */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-700">
+                    Category Image (Optional)
+                  </label>
+                  {categoryForm.imageUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setCategoryForm({ ...categoryForm, imageUrl: "" })}
+                      className="text-xs text-red-500 hover:text-red-700 font-semibold flex items-center gap-1 cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Remove</span>
+                    </button>
+                  )}
+                </div>
+
+                {imageUploadError && (
+                  <div className="p-2.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-600 flex items-center gap-1.5">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{imageUploadError}</span>
+                  </div>
+                )}
+
+                {/* Local Upload Dropzone */}
+                <div
+                  onClick={() => !imageUploading && fileInputRef.current?.click()}
+                  className={`border-2 border-dashed rounded-xl p-4 bg-gray-50 flex flex-col items-center justify-center transition-all cursor-pointer relative overflow-hidden group ${
+                    imageUploading
+                      ? "border-[#ff2b75]/50 bg-pink-50/20 cursor-wait"
+                      : "border-gray-300 hover:border-[#ff2b75] hover:bg-pink-50/30"
+                  }`}
+                >
+                  {imageUploading ? (
+                    <div className="flex flex-col items-center gap-2 py-3">
+                      <Loader2 className="w-7 h-7 text-[#ff2b75] animate-spin" />
+                      <p className="text-xs font-semibold text-[#ff2b75]">Uploading image...</p>
+                      <p className="text-[11px] text-gray-400">Processing file...</p>
+                    </div>
+                  ) : categoryForm.imageUrl ? (
+                    <div className="flex items-center gap-3.5 w-full">
+                      <div className="relative w-16 h-16 rounded-xl overflow-hidden border border-gray-200 bg-white shrink-0 shadow-xs">
+                        <LazyImage
+                          src={categoryForm.imageUrl}
+                          alt="Category preview"
+                          fill
+                          className="object-cover"
+                          fallbackText={categoryForm.name || "Preview"}
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
+                          <Check className="w-4 h-4 text-green-600" /> Image Selected
+                        </p>
+                        <p className="text-[11px] text-gray-500 truncate mt-0.5">
+                          {categoryForm.imageUrl.startsWith("data:") ? "Local Image File" : categoryForm.imageUrl}
+                        </p>
+                        <span className="inline-block mt-1 text-[11px] font-semibold text-[#ff2b75] group-hover:underline">
+                          Click to choose a different image
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-2">
+                      <div className="w-10 h-10 rounded-full bg-white shadow-xs border border-gray-100 text-[#ff2b75] flex items-center justify-center mx-auto mb-2 group-hover:scale-105 transition-transform">
+                        <UploadCloud className="w-5 h-5" />
+                      </div>
+                      <p className="text-xs font-bold text-gray-800">
+                        Upload Image from Computer / Phone
+                      </p>
+                      <p className="text-[11px] text-gray-400 mt-0.5">
+                        Click here to select JPG, PNG, WEBP from your local files
+                      </p>
+                    </div>
+                  )}
+
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    className="hidden"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    disabled={imageUploading}
+                  />
+                </div>
+
+                {/* Secondary or direct URL paste */}
+                <div className="pt-1">
+                  <input
+                    type="text"
+                    placeholder="Or paste image URL (https://...)"
+                    value={categoryForm.imageUrl.startsWith("data:") ? "" : categoryForm.imageUrl}
+                    onChange={(e) => setCategoryForm({ ...categoryForm, imageUrl: e.target.value })}
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#ff2b75] focus:border-[#ff2b75] transition-colors"
+                  />
+                </div>
               </div>
 
               {/* Subcategories (only when creating new) */}

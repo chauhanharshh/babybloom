@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation";
 import prisma from "@/lib/prisma";
 import ProductDetailsClient from "./ProductDetailsClient";
 import { getActiveOffers, calculateProductOffer } from "@/lib/offers";
@@ -21,26 +22,12 @@ export default async function ProductDetailPage({ params }: PageProps) {
       });
     }
   } catch (error) {
-    console.warn(
-      "Notice: Could not fetch product from DB (falling back to sample):",
-      (error as Error)?.message || error
-    );
+    console.warn("Notice: Could not fetch product from DB:", (error as Error)?.message || error);
   }
 
-  // Fallback to sample item if not found in DB
+  // If not found in DB, return 404
   if (!product) {
-    product = {
-      id: 1,
-      name: "Beautiful Party Frock",
-      price: 999,
-      stock: 20,
-      category: "Girls",
-      ageGroup: "1-6 Yrs",
-      description: "Exquisite layered party frock with soft cotton lining, premium lace finish, and delicate bow details. Perfect for birthdays, weddings, and festive celebrations.",
-      imageUrl: "/images/products/party-frock.jpg",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    notFound();
   }
 
   const activeOffers = await getActiveOffers();
@@ -52,7 +39,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
     price: offer.price,
     mrp: offer.mrp,
     discountPercent: offer.discountPercent,
-    imageUrl: product.imageUrl || "/images/products/party-frock.jpg",
+    imageUrl: product.imageUrl || "",
     ageGroup: product.ageGroup,
     description: product.description,
   };

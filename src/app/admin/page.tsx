@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import Link from "next/link";
 import LazyImage from "@/components/LazyImage";
 
+export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function AdminDashboard() {
@@ -15,9 +16,23 @@ export default async function AdminDashboard() {
   let activeBannersCount = 0;
   let activeOffersCount = 0;
   let totalProductsCount = 0;
+  let totalOrdersCount = 0;
+  let pendingOrdersCount = 0;
+  let approvedOrdersCount = 0;
+  let approvedRevenue = 0;
 
   try {
-    const [ordersRes, recentProductsRes, bannersCountRes, offersCountRes, productsCountRes] = await Promise.all([
+    const [
+      ordersRes,
+      recentProductsRes,
+      bannersCountRes,
+      offersCountRes,
+      productsCountRes,
+      totalOrdersRes,
+      pendingOrdersRes,
+      approvedOrdersRes,
+      revenueRes,
+    ] = await Promise.all([
       prisma.order.findMany({
         orderBy: { createdAt: "desc" },
         include: { items: true },
@@ -30,12 +45,23 @@ export default async function AdminDashboard() {
       prisma.banner.count({ where: { isActive: true } }),
       prisma.offer.count({ where: { isActive: true } }),
       prisma.product.count(),
+      prisma.order.count(),
+      prisma.order.count({ where: { status: "pending" } }),
+      prisma.order.count({ where: { status: "approved" } }),
+      prisma.order.aggregate({
+        where: { status: "approved" },
+        _sum: { total: true },
+      }),
     ]);
     orders = ordersRes;
     recentProducts = recentProductsRes;
     activeBannersCount = bannersCountRes;
     activeOffersCount = offersCountRes;
     totalProductsCount = productsCountRes;
+    totalOrdersCount = totalOrdersRes;
+    pendingOrdersCount = pendingOrdersRes;
+    approvedOrdersCount = approvedOrdersRes;
+    approvedRevenue = revenueRes._sum.total || 0;
   } catch (error) {
     console.warn(
       "Notice: Could not load data from DB for Admin dashboard:",
@@ -43,26 +69,19 @@ export default async function AdminDashboard() {
     );
   }
 
-  const totalRevenue = orders
-    .filter((o) => o.status === "approved")
-    .reduce((sum, o) => sum + o.total, 0);
-
-  const pendingCount = orders.filter((o) => o.status === "pending").length;
-  const approvedCount = orders.filter((o) => o.status === "approved").length;
-
   const stats = [
     {
       name: "Approved Revenue",
-      value: `₹${totalRevenue.toFixed(0)}`,
+      value: `₹${approvedRevenue.toFixed(0)}`,
       icon: IndianRupee,
-      sub: `${approvedCount} approved order${approvedCount !== 1 ? "s" : ""}`,
+      sub: `${approvedOrdersCount} approved order${approvedOrdersCount !== 1 ? "s" : ""}`,
       color: "text-green-600",
     },
     {
       name: "Total Orders",
-      value: orders.length.toString(),
+      value: totalOrdersCount.toString(),
       icon: ShoppingBag,
-      sub: `${pendingCount} pending`,
+      sub: `${pendingOrdersCount} pending`,
       color: "text-yellow-600",
     },
     {

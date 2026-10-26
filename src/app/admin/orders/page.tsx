@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Check, X, Clock, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
+import { Check, X, Clock, ChevronDown, ChevronUp, RefreshCw, Trash2 } from "lucide-react";
 
 interface OrderItem {
   id: number;
@@ -72,6 +72,36 @@ export default function AdminOrders() {
     setUpdating(null);
   };
 
+  const deleteOrder = async (id: number) => {
+    if (!confirm(`Are you sure you want to delete Order #${id}?`)) return;
+    setUpdating(id);
+    try {
+      const res = await fetch(`/api/orders/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setOrders((prev) => prev.filter((o) => o.id !== id));
+      }
+    } catch (e) {
+      console.error("Failed to delete order:", e);
+    } finally {
+      setUpdating(null);
+    }
+  };
+
+  const clearAllOrders = async () => {
+    if (!confirm("Are you sure you want to permanently delete ALL orders from the database? This cannot be undone.")) return;
+    setLoading(true);
+    try {
+      const res = await fetch("/api/orders", { method: "DELETE" });
+      if (res.ok) {
+        setOrders([]);
+      }
+    } catch (e) {
+      console.error("Failed to clear orders:", e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "approved":
@@ -102,13 +132,25 @@ export default function AdminOrders() {
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Orders</h1>
           <p className="text-gray-500 mt-1 text-sm sm:text-base">Manage customer orders, view delivery details, and update statuses.</p>
         </div>
-        <button
-          onClick={fetchOrders}
-          className="w-full sm:w-auto justify-center flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors"
-        >
-          <RefreshCw className="w-4 h-4" />
-          Refresh
-        </button>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          {orders.length > 0 && (
+            <button
+              onClick={clearAllOrders}
+              className="flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-200"
+              title="Delete all orders"
+            >
+              <Trash2 className="w-4 h-4" />
+              Clear All Orders
+            </button>
+          )}
+          <button
+            onClick={fetchOrders}
+            className="w-full sm:w-auto justify-center flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {loading ? (
@@ -176,6 +218,18 @@ export default function AdminOrders() {
                       </button>
                     </div>
                   )}
+
+                  <button
+                    disabled={updating === order.id}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteOrder(order.id);
+                    }}
+                    className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                    title="Delete Order"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
 
                   {expandedId === order.id ? (
                     <ChevronUp className="w-5 h-5 text-gray-400" />
