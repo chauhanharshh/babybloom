@@ -1,4 +1,4 @@
-import { IndianRupee, ShoppingBag, Package, Clock, BadgePercent, FolderTree } from "lucide-react";
+import { IndianRupee, ShoppingBag, Package, Clock, BadgePercent, FolderTree, Store } from "lucide-react";
 import prisma from "@/lib/prisma";
 import Link from "next/link";
 import LazyImage from "@/components/LazyImage";
@@ -128,8 +128,8 @@ export default async function AdminDashboard() {
       </div>
 
       {/* Quick Action Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-gradient-to-r from-pink-500 to-[#ff2b75] rounded-2xl p-5 text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-gradient-to-r from-pink-500 to-[#ff2b75] rounded-2xl p-5 text-white flex flex-col items-start justify-between gap-4 shadow-sm">
           <div className="space-y-1">
             <h2 className="text-base font-bold flex items-center gap-2">
               <BadgePercent className="w-5 h-5" />
@@ -147,14 +147,14 @@ export default async function AdminDashboard() {
           </Link>
         </div>
 
-        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl p-5 text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl p-5 text-white flex flex-col items-start justify-between gap-4 shadow-sm">
           <div className="space-y-1">
             <h2 className="text-base font-bold flex items-center gap-2">
               <FolderTree className="w-5 h-5" />
-              Categories & Subcategories
+              Categories
             </h2>
             <p className="text-xs text-white/90">
-              Nayi categories aur unke subcategories create karein.
+              Nayi categories aur subcategories create karein.
             </p>
           </div>
           <Link
@@ -162,6 +162,24 @@ export default async function AdminDashboard() {
             className="bg-white text-indigo-700 hover:bg-indigo-50 px-3.5 py-2 rounded-lg font-bold text-xs shadow-sm transition-colors shrink-0"
           >
             Manage Categories →
+          </Link>
+        </div>
+
+        <div className="bg-gradient-to-r from-emerald-600 to-teal-600 rounded-2xl p-5 text-white flex flex-col items-start justify-between gap-4 shadow-sm">
+          <div className="space-y-1">
+            <h2 className="text-base font-bold flex items-center gap-2">
+              <Store className="w-5 h-5" />
+              Store & Payment Settings
+            </h2>
+            <p className="text-xs text-white/90">
+              Dukaan details, WhatsApp & COD/UPI payment methods on/off.
+            </p>
+          </div>
+          <Link
+            href={`${ADMIN_BASE_PATH}/profile`}
+            className="bg-white text-emerald-800 hover:bg-emerald-50 px-3.5 py-2 rounded-lg font-bold text-xs shadow-sm transition-colors shrink-0"
+          >
+            Edit Profile & Payments →
           </Link>
         </div>
       </div>

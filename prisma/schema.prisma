@@ -92,3 +92,38 @@ model Subcategory {
 
   @@unique([categoryId, name])
 }
+
+model StoreProfile {
+  id                 Int      @id @default(1)
+  storeName          String   @default("Baby Bloom")
+  tagline            String?  @default("Everyday outfits for your little trendsetters")
+  ownerName          String?  @default("Baby Bloom Store")
+  phone              String   @default("+91 95200 42719")
+  whatsappNumber     String   @default("919520042719")
+  email              String   @default("babybloom.bb2024@gmail.com")
+  addressLine1       String?  @default("Khanna Nagar, House no. 41")
+  addressLine2       String?  @default("Opposite Kaushik Academy")
+  city               String?  @default("Haridwar")
+  state              String?  @default("Uttarakhand")
+  pincode            String?  @default("249401")
+  instagramUrl       String?  @default("https://instagram.com")
+  facebookUrl        String?  @default("https://facebook.com")
+  aboutText          String?  @default("Everyday outfits for your little trendsetters. Clothes for 1-6 years.")
+
+  // Payment Methods Enable / Disable toggles
+  codEnabled         Boolean  @default(true)
+  codNote            String?  @default("Pay in cash when your order arrives at your doorstep.")
+  upiEnabled         Boolean  @default(true)
+  upiId              String?  @default("9520042719@upi")
+  upiQrUrl           String?
+  cardEnabled        Boolean  @default(true)
+  netbankingEnabled  Boolean  @default(true)
+  bankName           String?
+  accountNumber      String?
+  ifscCode           String?
+  accountHolderName  String?
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+

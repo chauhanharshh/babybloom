@@ -1,6 +1,7 @@
 import { MapPin, Mail, Phone, Heart } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import { getStoreProfile } from "@/lib/profile";
 
 const Facebook = ({ size = 18 }: { size?: number }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
@@ -22,7 +23,8 @@ const YouTube = ({ size = 18 }: { size?: number }) => (
   </svg>
 );
 
-export default function Footer() {
+export default async function Footer() {
+  const profile = await getStoreProfile();
   return (
     <footer className="bg-white border-t border-pink-100 flex flex-col">
       {/* Top Footer Columns (Hidden on mobile to match the app-like reference mockup) */}
@@ -76,15 +78,21 @@ export default function Footer() {
             <ul className="space-y-2.5 text-xs sm:text-sm text-gray-600">
               <li className="flex items-start gap-2">
                 <MapPin size={16} className="text-[#ff2b75] shrink-0 mt-0.5" />
-                <span>Haridwar, Uttarakhand, India</span>
+                <span>
+                  {[profile.addressLine1, profile.city, profile.state].filter(Boolean).join(", ") || "Haridwar, Uttarakhand, India"}
+                </span>
               </li>
               <li className="flex items-center gap-2">
                 <Phone size={16} className="text-[#ff2b75] shrink-0" />
-                <span>+91 95200 42719</span>
+                <a href={`tel:${profile.phone}`} className="hover:text-[#ff2b75] transition-colors">
+                  {profile.phone || "+91 95200 42719"}
+                </a>
               </li>
               <li className="flex items-center gap-2">
                 <Mail size={16} className="text-[#ff2b75] shrink-0" />
-                <span>hello@babybloom.com</span>
+                <a href={`mailto:${profile.email}`} className="hover:text-[#ff2b75] transition-colors">
+                  {profile.email || "babybloom.bb2024@gmail.com"}
+                </a>
               </li>
             </ul>
           </div>
@@ -99,7 +107,9 @@ export default function Footer() {
           {/* Location info from image */}
           <div className="flex items-center gap-1.5 font-medium flex-1 truncate pr-2 border-r border-white/30">
             <MapPin size={13} className="text-white shrink-0" />
-            <span className="truncate">Khanna Nagar | House no. 41 | Opposite Kaushik Academy</span>
+            <span className="truncate">
+              {[profile.addressLine1, profile.addressLine2, profile.city].filter(Boolean).join(" | ") || "Khanna Nagar | House no. 41 | Opposite Kaushik Academy"}
+            </span>
           </div>
 
           {/* Social Icons matching mockup */}
@@ -107,7 +117,7 @@ export default function Footer() {
             <span className="font-bold text-[10px] sm:text-xs whitespace-nowrap">Follow Us:</span>
             <div className="flex items-center gap-1.5">
               <a 
-                href="https://facebook.com" 
+                href={profile.facebookUrl || "https://facebook.com"} 
                 target="_blank" 
                 rel="noreferrer" 
                 className="w-5 h-5 sm:w-6 sm:h-6 bg-[#1877F2] text-white rounded-full flex items-center justify-center hover:scale-110 transition-transform shadow-xs"
@@ -116,7 +126,7 @@ export default function Footer() {
                 <Facebook size={11} />
               </a>
               <a 
-                href="https://instagram.com" 
+                href={profile.instagramUrl || "https://instagram.com"} 
                 target="_blank" 
                 rel="noreferrer" 
                 className="w-5 h-5 sm:w-6 sm:h-6 bg-gradient-to-tr from-amber-400 via-rose-500 to-purple-600 text-white rounded-full flex items-center justify-center hover:scale-110 transition-transform shadow-xs"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -17,36 +17,104 @@ import {
   X,
   Phone,
   User,
-  ShoppingBag
+  ShoppingBag,
+  Copy,
+  Check,
+  QrCode,
+  MessageCircle,
+  AlertTriangle
 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import type { StoreProfileData } from "@/lib/profile";
 
 export default function CheckoutPage() {
   const router = useRouter();
   const { cart, totalPrice, totalItems, clearCart, appliedCoupon } = useCart();
 
-  // Address state
+  // Store profile and dynamic payment settings
+  const [storeProfile, setStoreProfile] = useState<StoreProfileData | null>(null);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [copiedUpi, setCopiedUpi] = useState(false);
+
+  // Address state - Empty by default (no hardcoded/prefilled dummy data)
   const [address, setAddress] = useState({
-    name: "Harsh Chauhan",
-    email: "harshchauhan@gmail.com",
-    phone: "+91 8941000584",
-    line1: "Khanna Nagar, House no. 41,",
-    line2: "Opposite Kaushik Academy,",
-    cityStateZip: "Haridwar - 249401, Uttarakhand",
+    name: "",
+    email: "",
+    phone: "",
+    line1: "",
+    line2: "",
+    cityStateZip: "",
   });
 
-  // Modal for changing address
+  // Modal for adding / changing address
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
   const [tempAddress, setTempAddress] = useState(address);
 
-  // Selected payment method
-  const [paymentMethod, setPaymentMethod] = useState<"cod" | "upi" | "card" | "netbanking">("cod");
+  // Load customer address from localStorage if previously entered
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("babybloom_customer_address");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.name && parsed?.line1) {
+          setAddress(parsed);
+          setTempAddress(parsed);
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  // Selected payment method - initialized to empty until store profile loads
+  const [paymentMethod, setPaymentMethod] = useState<string>("");
 
   // Order submission state
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState<{ id: number; total: number } | null>(null);
+
+  // Fetch store payment settings & profile
+  useEffect(() => {
+    async function fetchSettings() {
+      try {
+        const res = await fetch("/api/profile");
+        const data = await res.json();
+        if (res.ok && data.success && data.profile) {
+          const p: StoreProfileData = data.profile;
+          setStoreProfile(p);
+          // Auto-select first active payment method
+          if (p.codEnabled) {
+            setPaymentMethod("cod");
+          } else if (p.upiEnabled) {
+            setPaymentMethod("upi");
+          } else if (p.cardEnabled) {
+            setPaymentMethod("card");
+          } else if (p.netbankingEnabled) {
+            setPaymentMethod("netbanking");
+          } else {
+            setPaymentMethod("");
+          }
+        }
+      } catch (err) {
+        console.warn("Could not load payment settings:", err);
+      } finally {
+        setLoadingProfile(false);
+      }
+    }
+    fetchSettings();
+  }, []);
+
+  // Safe payment selection helper: Prevents selecting disabled payment methods
+  const handleSelectPaymentMethod = (method: "cod" | "upi" | "card" | "netbanking") => {
+    if (!storeProfile) return;
+    if (method === "cod" && !storeProfile.codEnabled) return;
+    if (method === "upi" && !storeProfile.upiEnabled) return;
+    if (method === "card" && !storeProfile.cardEnabled) return;
+    if (method === "netbanking" && !storeProfile.netbankingEnabled) return;
+    setPaymentMethod(method);
+  };
 
   const discount = appliedCoupon ? Math.round(totalPrice * (appliedCoupon.percent / 100)) : 0;
   const finalTotal = Math.max(0, totalPrice - discount);
@@ -56,14 +124,57 @@ export default function CheckoutPage() {
 
   const handleSaveAddress = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!tempAddress.name.trim() || !tempAddress.phone.trim() || !tempAddress.line1.trim() || !tempAddress.cityStateZip.trim()) {
+      alert("Please fill in Full Name, Phone, Address, and City/Pincode.");
+      return;
+    }
     setAddress(tempAddress);
     setIsAddressModalOpen(false);
+    try {
+      localStorage.setItem("babybloom_customer_address", JSON.stringify(tempAddress));
+    } catch {
+      // ignore
+    }
   };
 
   const handlePlaceOrder = async () => {
     if (cart.length === 0) {
       alert("Your cart is empty! Please add products before placing an order.");
       return;
+    }
+
+    // Require address before placing order
+    if (!address.name.trim() || !address.phone.trim() || !address.line1.trim() || !address.cityStateZip.trim()) {
+      alert("Please enter your complete delivery address before placing your order.");
+      setTempAddress(address);
+      setIsAddressModalOpen(true);
+      return;
+    }
+
+    // Require a valid selected payment method
+    if (!paymentMethod) {
+      alert("Please select an available payment method.");
+      return;
+    }
+
+    // Validate that selected payment method is enabled by store
+    if (storeProfile) {
+      if (paymentMethod === "cod" && !storeProfile.codEnabled) {
+        alert("Cash on Delivery is currently disabled by store. Please select another payment method.");
+        return;
+      }
+      if (paymentMethod === "upi" && !storeProfile.upiEnabled) {
+        alert("UPI payment is currently disabled by store. Please select another payment method.");
+        return;
+      }
+      if (paymentMethod === "card" && !storeProfile.cardEnabled) {
+        alert("Card payment is currently disabled by store. Please select another payment method.");
+        return;
+      }
+      if (paymentMethod === "netbanking" && !storeProfile.netbankingEnabled) {
+        alert("Net Banking is currently disabled by store. Please select another payment method.");
+        return;
+      }
     }
 
     setIsSubmitting(true);
@@ -181,7 +292,7 @@ export default function CheckoutPage() {
             </div>
             <div className="pt-2 flex flex-col gap-2">
               <Link
-                href={`https://wa.me/918941000584?text=${encodeURIComponent(`Hi Babybloom, I have placed order #${orderSuccess.id} for ₹${orderSuccess.total}. Please confirm!`)}`}
+                href={`https://wa.me/${(storeProfile?.whatsappNumber || "919520042719").replace(/[^0-9]/g, "")}?text=${encodeURIComponent(`Hi ${storeProfile?.storeName || "Babybloom"}, I have placed order #${orderSuccess.id} for ₹${orderSuccess.total}. Please confirm!`)}`}
                 target="_blank"
                 className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-colors"
               >
@@ -216,42 +327,78 @@ export default function CheckoutPage() {
             {/* Left Column (Address & Payment Method) */}
             <div className="lg:col-span-7 space-y-4">
               {/* 1. Delivery Address */}
+              {/* 1. Delivery Address */}
               <section className="space-y-2">
                 <div className="flex justify-between items-center px-0.5">
                   <h2 className="text-sm sm:text-base font-extrabold text-gray-900 tracking-tight">
                     1. Delivery Address
                   </h2>
-                  <button
-                    type="button"
+                  {address.name && address.line1 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTempAddress(address);
+                        setIsAddressModalOpen(true);
+                      }}
+                      className="text-xs font-bold text-[#ff2b75] hover:text-[#e01d62] flex items-center gap-0.5 transition-colors"
+                    >
+                      <span>Change</span>
+                      <ChevronRight size={14} />
+                    </button>
+                  )}
+                </div>
+
+                {/* Delivery Address Card: Shows saved address or interactive prompt to add address */}
+                {address.name && address.line1 ? (
+                  <div className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-100 shadow-xs flex items-start gap-3.5">
+                    {/* Active Pink Radio Button */}
+                    <div className="mt-1 w-4 h-4 rounded-full border-2 border-[#ff2b75] flex items-center justify-center shrink-0">
+                      <div className="w-2 h-2 rounded-full bg-[#ff2b75]" />
+                    </div>
+
+                    {/* Address Text */}
+                    <div className="text-xs space-y-1 text-gray-600 flex-1">
+                      <p className="font-bold text-gray-900 text-[13px] sm:text-sm">{address.name}</p>
+                      <p className="font-medium text-gray-700">{address.phone} {address.email ? `• ${address.email}` : ""}</p>
+                      <div className="leading-relaxed text-gray-500 pt-0.5">
+                        <p>{address.line1}</p>
+                        {address.line2 && <p>{address.line2}</p>}
+                        <p>{address.cityStateZip}</p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTempAddress(address);
+                        setIsAddressModalOpen(true);
+                      }}
+                      className="text-xs font-bold text-[#ff2b75] hover:text-[#e01d62] px-2 py-1 transition-colors"
+                    >
+                      Edit
+                    </button>
+                  </div>
+                ) : (
+                  <div
                     onClick={() => {
                       setTempAddress(address);
                       setIsAddressModalOpen(true);
                     }}
-                    className="text-xs font-bold text-[#ff2b75] hover:text-[#e01d62] flex items-center gap-0.5 transition-colors"
+                    className="bg-white rounded-2xl p-5 sm:p-6 border-2 border-dashed border-pink-200 hover:border-[#ff2b75] cursor-pointer text-center space-y-2 transition-all hover:bg-pink-50/20 group shadow-2xs"
                   >
-                    <span>Change</span>
-                    <ChevronRight size={14} />
-                  </button>
-                </div>
-
-                {/* Delivery Address Card (Exact Mockup Match) */}
-                <div className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-100 shadow-xs flex items-start gap-3.5">
-                  {/* Active Pink Radio Button */}
-                  <div className="mt-1 w-4 h-4 rounded-full border-2 border-[#ff2b75] flex items-center justify-center shrink-0">
-                    <div className="w-2 h-2 rounded-full bg-[#ff2b75]" />
-                  </div>
-
-                  {/* Address Text */}
-                  <div className="text-xs space-y-1 text-gray-600">
-                    <p className="font-bold text-gray-900 text-[13px] sm:text-sm">{address.name}</p>
-                    <p className="font-medium text-gray-700">{address.phone} • {address.email}</p>
-                    <div className="leading-relaxed text-gray-500 pt-0.5">
-                      <p>{address.line1}</p>
-                      <p>{address.line2}</p>
-                      <p>{address.cityStateZip}</p>
+                    <div className="w-10 h-10 rounded-full bg-pink-50 text-[#ff2b75] flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
+                      <MapPin size={20} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-gray-900 group-hover:text-[#ff2b75] transition-colors">
+                        + Add Delivery Address
+                      </p>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        Click here to enter your delivery address & contact details
+                      </p>
                     </div>
                   </div>
-                </div>
+                )}
               </section>
 
               {/* 2. Payment Method */}
@@ -260,88 +407,315 @@ export default function CheckoutPage() {
                   2. Payment Method
                 </h2>
 
-                {/* Payment Methods Card (Exact Mockup Match) */}
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-xs divide-y divide-gray-50 overflow-hidden">
-                  {/* Option 1: Cash on Delivery (COD) */}
-                  <label 
-                    onClick={() => setPaymentMethod("cod")}
-                    className="flex items-center gap-3 p-3.5 sm:p-4 cursor-pointer hover:bg-pink-50/30 transition-colors"
-                  >
-                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                      paymentMethod === "cod" ? "border-[#ff2b75]" : "border-gray-300"
-                    }`}>
-                      {paymentMethod === "cod" && <div className="w-2 h-2 rounded-full bg-[#ff2b75]" />}
+                {/* Payment Methods Card with Dynamic On/Off settings from Store Profile */}
+                {loadingProfile ? (
+                  <div className="bg-white rounded-2xl border border-gray-100 p-6 text-center space-y-2">
+                    <div className="w-5 h-5 border-2 border-[#ff2b75] border-t-transparent rounded-full animate-spin mx-auto" />
+                    <p className="text-xs text-gray-500">Loading payment options...</p>
+                  </div>
+                ) : storeProfile &&
+                  !storeProfile.codEnabled &&
+                  !storeProfile.upiEnabled &&
+                  !storeProfile.cardEnabled &&
+                  !storeProfile.netbankingEnabled ? (
+                  <div className="bg-white rounded-2xl border border-amber-200 p-5 shadow-xs space-y-3">
+                    <div className="flex items-start gap-3">
+                      <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                      <div className="text-xs text-amber-900 space-y-1">
+                        <p className="font-bold">Online Checkout Temporarily Paused</p>
+                        <p className="text-amber-700">
+                          Store par abhi online payment methods off hain. Aap direct WhatsApp par order place kar sakte hain!
+                        </p>
+                      </div>
                     </div>
+                    <a
+                      href={`https://wa.me/${storeProfile.whatsappNumber || "919520042719"}?text=${encodeURIComponent("Hi Babybloom! I want to place an order from your website.")}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white py-2.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition-colors"
+                    >
+                      <MessageCircle size={15} />
+                      <span>Order Directly on WhatsApp</span>
+                    </a>
+                  </div>
+                ) : (
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-xs divide-y divide-gray-50 overflow-hidden">
+                    {/* Option 1: Cash on Delivery (COD) */}
+                    {storeProfile?.codEnabled ? (
+                      <div className={`transition-colors ${paymentMethod === "cod" ? "bg-emerald-50/20" : ""}`}>
+                        <label 
+                          onClick={() => handleSelectPaymentMethod("cod")}
+                          className="flex items-center gap-3 p-3.5 sm:p-4 cursor-pointer hover:bg-pink-50/30 transition-colors"
+                        >
+                          <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                            paymentMethod === "cod" ? "border-[#ff2b75]" : "border-gray-300"
+                          }`}>
+                            {paymentMethod === "cod" && <div className="w-2 h-2 rounded-full bg-[#ff2b75]" />}
+                          </div>
 
-                    <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-                      <Banknote size={16} />
-                    </div>
+                          <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                            <Banknote size={16} />
+                          </div>
 
-                    <span className="text-xs sm:text-sm font-bold text-gray-800 flex-1">
-                      Cash on Delivery (COD)
-                    </span>
-                  </label>
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs sm:text-sm font-bold text-gray-800">
+                                Cash on Delivery (COD)
+                              </span>
+                              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
+                                Available
+                              </span>
+                            </div>
+                            {storeProfile?.codNote && paymentMethod === "cod" && (
+                              <p className="text-[11px] text-gray-500 mt-1">
+                                {storeProfile.codNote}
+                              </p>
+                            )}
+                          </div>
+                        </label>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-3 p-3.5 sm:p-4 bg-gray-50/70 opacity-45 cursor-not-allowed select-none">
+                        <div className="w-4 h-4 rounded-full border-2 border-gray-200 bg-gray-100 shrink-0" />
+                        <div className="w-7 h-7 rounded-lg bg-gray-100 text-gray-400 flex items-center justify-center shrink-0">
+                          <Banknote size={16} />
+                        </div>
+                        <div className="flex-1 flex items-center justify-between">
+                          <div>
+                            <span className="text-xs sm:text-sm font-medium text-gray-500 line-through">
+                              Cash on Delivery (COD)
+                            </span>
+                            <p className="text-[10px] text-gray-400">Store dwara abhi disabled hai</p>
+                          </div>
+                          <span className="text-[10px] font-semibold text-gray-400 bg-gray-200 px-2 py-0.5 rounded">
+                            Unavailable
+                          </span>
+                        </div>
+                      </div>
+                    )}
 
-                  {/* Option 2: UPI (GPay, PhonePe, Paytm) */}
-                  <label 
-                    onClick={() => setPaymentMethod("upi")}
-                    className="flex items-center gap-3 p-3.5 sm:p-4 cursor-pointer hover:bg-pink-50/30 transition-colors"
-                  >
-                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                      paymentMethod === "upi" ? "border-[#ff2b75]" : "border-gray-300"
-                    }`}>
-                      {paymentMethod === "upi" && <div className="w-2 h-2 rounded-full bg-[#ff2b75]" />}
-                    </div>
+                    {/* Option 2: UPI (GPay, PhonePe, Paytm) */}
+                    {storeProfile?.upiEnabled ? (
+                      <div className={`transition-colors ${paymentMethod === "upi" ? "bg-orange-50/20" : ""}`}>
+                        <label 
+                          onClick={() => handleSelectPaymentMethod("upi")}
+                          className="flex items-center gap-3 p-3.5 sm:p-4 cursor-pointer hover:bg-pink-50/30 transition-colors"
+                        >
+                          <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                            paymentMethod === "upi" ? "border-[#ff2b75]" : "border-gray-300"
+                          }`}>
+                            {paymentMethod === "upi" && <div className="w-2 h-2 rounded-full bg-[#ff2b75]" />}
+                          </div>
 
-                    <div className="w-7 h-7 rounded-lg bg-orange-50 text-[#ff2b75] flex items-center justify-center shrink-0">
-                      <Smartphone size={16} />
-                    </div>
+                          <div className="w-7 h-7 rounded-lg bg-orange-50 text-[#ff2b75] flex items-center justify-center shrink-0">
+                            <Smartphone size={16} />
+                          </div>
 
-                    <span className="text-xs sm:text-sm font-bold text-gray-800 flex-1">
-                      UPI (GPay, PhonePe, Paytm)
-                    </span>
-                  </label>
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs sm:text-sm font-bold text-gray-800">
+                                UPI (GPay, PhonePe, Paytm)
+                              </span>
+                              <span className="text-[10px] font-bold text-orange-700 bg-orange-50 border border-orange-200 px-1.5 py-0.5 rounded">
+                                Instant
+                              </span>
+                            </div>
+                          </div>
+                        </label>
 
-                  {/* Option 3: Credit/Debit Card */}
-                  <label 
-                    onClick={() => setPaymentMethod("card")}
-                    className="flex items-center gap-3 p-3.5 sm:p-4 cursor-pointer hover:bg-pink-50/30 transition-colors"
-                  >
-                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                      paymentMethod === "card" ? "border-[#ff2b75]" : "border-gray-300"
-                    }`}>
-                      {paymentMethod === "card" && <div className="w-2 h-2 rounded-full bg-[#ff2b75]" />}
-                    </div>
+                        {/* Expanded UPI Details when selected */}
+                        {paymentMethod === "upi" && storeProfile?.upiId && (
+                          <div className="px-4 pb-4 pt-1 ml-9 mr-4">
+                            <div className="p-3 bg-white rounded-xl border border-orange-200 shadow-2xs space-y-2">
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="text-gray-500">Pay to UPI ID:</span>
+                                <div className="flex items-center gap-1.5">
+                                  <code className="font-mono font-bold text-[#ff2b75] bg-pink-50 px-2 py-0.5 rounded">
+                                    {storeProfile.upiId}
+                                  </code>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      if (storeProfile.upiId) {
+                                        navigator.clipboard.writeText(storeProfile.upiId);
+                                        setCopiedUpi(true);
+                                        setTimeout(() => setCopiedUpi(false), 2000);
+                                      }
+                                    }}
+                                    className="text-[10px] font-bold px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded transition-colors flex items-center gap-1"
+                                  >
+                                    {copiedUpi ? <Check size={11} className="text-emerald-600" /> : <Copy size={11} />}
+                                    <span>{copiedUpi ? "Copied" : "Copy"}</span>
+                                  </button>
+                                </div>
+                              </div>
 
-                    <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                      <CreditCard size={16} />
-                    </div>
+                              {storeProfile.upiQrUrl && (
+                                <div className="pt-2 text-center">
+                                  <p className="text-[11px] text-gray-500 mb-1.5">Scan QR to pay:</p>
+                                  <div className="relative w-32 h-32 mx-auto bg-white rounded-lg border border-gray-200 p-1">
+                                    <Image
+                                      src={storeProfile.upiQrUrl}
+                                      alt="UPI QR Code"
+                                      fill
+                                      className="object-contain"
+                                    />
+                                  </div>
+                                </div>
+                              )}
+                              <p className="text-[10px] text-gray-400">
+                                Order place karne ke baad WhatsApp confirm button se receipt share karein.
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-3 p-3.5 sm:p-4 bg-gray-50/70 opacity-45 cursor-not-allowed select-none">
+                        <div className="w-4 h-4 rounded-full border-2 border-gray-200 bg-gray-100 shrink-0" />
+                        <div className="w-7 h-7 rounded-lg bg-gray-100 text-gray-400 flex items-center justify-center shrink-0">
+                          <Smartphone size={16} />
+                        </div>
+                        <div className="flex-1 flex items-center justify-between">
+                          <div>
+                            <span className="text-xs sm:text-sm font-medium text-gray-500 line-through">
+                              UPI (GPay, PhonePe, Paytm)
+                            </span>
+                            <p className="text-[10px] text-gray-400">UPI abhi store par disabled hai</p>
+                          </div>
+                          <span className="text-[10px] font-semibold text-gray-400 bg-gray-200 px-2 py-0.5 rounded">
+                            Unavailable
+                          </span>
+                        </div>
+                      </div>
+                    )}
 
-                    <span className="text-xs sm:text-sm font-bold text-gray-800 flex-1">
-                      Credit/Debit Card
-                    </span>
-                  </label>
+                    {/* Option 3: Credit/Debit Card */}
+                    {storeProfile?.cardEnabled ? (
+                      <label 
+                        onClick={() => handleSelectPaymentMethod("card")}
+                        className="flex items-center gap-3 p-3.5 sm:p-4 cursor-pointer hover:bg-pink-50/30 transition-colors"
+                      >
+                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                          paymentMethod === "card" ? "border-[#ff2b75]" : "border-gray-300"
+                        }`}>
+                          {paymentMethod === "card" && <div className="w-2 h-2 rounded-full bg-[#ff2b75]" />}
+                        </div>
 
-                  {/* Option 4: Net Banking */}
-                  <label 
-                    onClick={() => setPaymentMethod("netbanking")}
-                    className="flex items-center gap-3 p-3.5 sm:p-4 cursor-pointer hover:bg-pink-50/30 transition-colors"
-                  >
-                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                      paymentMethod === "netbanking" ? "border-[#ff2b75]" : "border-gray-300"
-                    }`}>
-                      {paymentMethod === "netbanking" && <div className="w-2 h-2 rounded-full bg-[#ff2b75]" />}
-                    </div>
+                        <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                          <CreditCard size={16} />
+                        </div>
 
-                    <div className="w-7 h-7 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
-                      <Landmark size={16} />
-                    </div>
+                        <div className="flex-1 flex items-center justify-between">
+                          <span className="text-xs sm:text-sm font-bold text-gray-800">
+                            Credit / Debit Card
+                          </span>
+                          <span className="text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded">
+                            Cards
+                          </span>
+                        </div>
+                      </label>
+                    ) : (
+                      <div className="flex items-center gap-3 p-3.5 sm:p-4 bg-gray-50/70 opacity-45 cursor-not-allowed select-none">
+                        <div className="w-4 h-4 rounded-full border-2 border-gray-200 bg-gray-100 shrink-0" />
+                        <div className="w-7 h-7 rounded-lg bg-gray-100 text-gray-400 flex items-center justify-center shrink-0">
+                          <CreditCard size={16} />
+                        </div>
+                        <div className="flex-1 flex items-center justify-between">
+                          <div>
+                            <span className="text-xs sm:text-sm font-medium text-gray-500 line-through">
+                              Credit / Debit Card
+                            </span>
+                            <p className="text-[10px] text-gray-400">Card payments disabled hain</p>
+                          </div>
+                          <span className="text-[10px] font-semibold text-gray-400 bg-gray-200 px-2 py-0.5 rounded">
+                            Unavailable
+                          </span>
+                        </div>
+                      </div>
+                    )}
 
-                    <span className="text-xs sm:text-sm font-bold text-gray-800 flex-1">
-                      Net Banking
-                    </span>
-                  </label>
-                </div>
+                    {/* Option 4: Net Banking */}
+                    {storeProfile?.netbankingEnabled ? (
+                      <div className={`transition-colors ${paymentMethod === "netbanking" ? "bg-purple-50/20" : ""}`}>
+                        <label 
+                          onClick={() => handleSelectPaymentMethod("netbanking")}
+                          className="flex items-center gap-3 p-3.5 sm:p-4 cursor-pointer hover:bg-pink-50/30 transition-colors"
+                        >
+                          <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                            paymentMethod === "netbanking" ? "border-[#ff2b75]" : "border-gray-300"
+                          }`}>
+                            {paymentMethod === "netbanking" && <div className="w-2 h-2 rounded-full bg-[#ff2b75]" />}
+                          </div>
+
+                          <div className="w-7 h-7 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
+                            <Landmark size={16} />
+                          </div>
+
+                          <div className="flex-1 flex items-center justify-between">
+                            <span className="text-xs sm:text-sm font-bold text-gray-800">
+                              Net Banking
+                            </span>
+                            <span className="text-[10px] font-bold text-purple-700 bg-purple-50 border border-purple-200 px-1.5 py-0.5 rounded">
+                              Bank Transfer
+                            </span>
+                          </div>
+                        </label>
+
+                        {/* Bank Details when Netbanking selected */}
+                        {paymentMethod === "netbanking" && (storeProfile?.bankName || storeProfile?.accountNumber) && (
+                          <div className="px-4 pb-4 pt-1 ml-9 mr-4">
+                            <div className="p-3 bg-white rounded-xl border border-purple-200 shadow-2xs space-y-1 text-xs">
+                              <p className="font-bold text-gray-800">Bank Transfer Details:</p>
+                              {storeProfile.bankName && (
+                                <div className="flex justify-between text-gray-600">
+                                  <span>Bank:</span>
+                                  <span className="font-semibold text-gray-800">{storeProfile.bankName}</span>
+                                </div>
+                              )}
+                              {storeProfile.accountHolderName && (
+                                <div className="flex justify-between text-gray-600">
+                                  <span>Account Holder:</span>
+                                  <span className="font-semibold text-gray-800">{storeProfile.accountHolderName}</span>
+                                </div>
+                              )}
+                              {storeProfile.accountNumber && (
+                                <div className="flex justify-between text-gray-600">
+                                  <span>Account No:</span>
+                                  <span className="font-mono font-semibold text-gray-900">{storeProfile.accountNumber}</span>
+                                </div>
+                              )}
+                              {storeProfile.ifscCode && (
+                                <div className="flex justify-between text-gray-600">
+                                  <span>IFSC Code:</span>
+                                  <span className="font-mono font-semibold text-gray-900">{storeProfile.ifscCode}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-3 p-3.5 sm:p-4 bg-gray-50/70 opacity-45 cursor-not-allowed select-none">
+                        <div className="w-4 h-4 rounded-full border-2 border-gray-200 bg-gray-100 shrink-0" />
+                        <div className="w-7 h-7 rounded-lg bg-gray-100 text-gray-400 flex items-center justify-center shrink-0">
+                          <Landmark size={16} />
+                        </div>
+                        <div className="flex-1 flex items-center justify-between">
+                          <div>
+                            <span className="text-xs sm:text-sm font-medium text-gray-500 line-through">
+                              Net Banking
+                            </span>
+                            <p className="text-[10px] text-gray-400">Net banking abhi disabled hai</p>
+                          </div>
+                          <span className="text-[10px] font-semibold text-gray-400 bg-gray-200 px-2 py-0.5 rounded">
+                            Unavailable
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </section>
             </div>
 
@@ -385,11 +759,32 @@ export default function CheckoutPage() {
                 <button
                   type="button"
                   onClick={handlePlaceOrder}
-                  disabled={isSubmitting}
+                  disabled={
+                    isSubmitting ||
+                    Boolean(
+                      storeProfile &&
+                      !storeProfile.codEnabled &&
+                      !storeProfile.upiEnabled &&
+                      !storeProfile.cardEnabled &&
+                      !storeProfile.netbankingEnabled
+                    )
+                  }
                   className="w-full bg-[#ff2b75] hover:bg-[#e01d62] text-white py-3.5 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-md shadow-pink-500/25 active:scale-98 transition-all disabled:opacity-60 cursor-pointer"
                 >
                   <Lock size={15} />
-                  <span>{isSubmitting ? "Placing Order..." : "Place Order"}</span>
+                  <span>
+                    {isSubmitting
+                      ? "Placing Order..."
+                      : !address.name.trim() || !address.line1.trim()
+                      ? "Enter Delivery Address"
+                      : storeProfile &&
+                        !storeProfile.codEnabled &&
+                        !storeProfile.upiEnabled &&
+                        !storeProfile.cardEnabled &&
+                        !storeProfile.netbankingEnabled
+                      ? "Payments Disabled"
+                      : `Place Order • ₹${displayTotal}`}
+                  </span>
                 </button>
                 <p className="text-[11px] text-center text-gray-400 mt-2">
                   🔒 100% Safe & Secure Checkout
@@ -400,12 +795,14 @@ export default function CheckoutPage() {
         )}
       </div>
 
-      {/* Edit Address Modal */}
+      {/* Add / Edit Address Modal */}
       {isAddressModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
           <div className="bg-white w-full max-w-md rounded-t-3xl sm:rounded-2xl p-5 shadow-2xl space-y-4">
             <div className="flex items-center justify-between pb-2 border-b border-gray-100">
-              <h3 className="font-extrabold text-base text-gray-900">Edit Delivery Address</h3>
+              <h3 className="font-extrabold text-base text-gray-900">
+                {address.name && address.line1 ? "Edit Delivery Address" : "Add Delivery Address"}
+              </h3>
               <button
                 type="button"
                 onClick={() => setIsAddressModalOpen(false)}
@@ -417,12 +814,25 @@ export default function CheckoutPage() {
 
             <form onSubmit={handleSaveAddress} className="space-y-3">
               <div>
-                <label className="text-[11px] font-bold text-gray-600 block mb-1">Full Name</label>
+                <label className="text-[11px] font-bold text-gray-600 block mb-1">Full Name *</label>
                 <input
                   type="text"
                   required
+                  placeholder="e.g. Rahul Sharma"
                   value={tempAddress.name}
                   onChange={(e) => setTempAddress({ ...tempAddress, name: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#ff2b75]"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-gray-600 block mb-1">Phone Number *</label>
+                <input
+                  type="tel"
+                  required
+                  placeholder="e.g. +91 98765 43210"
+                  value={tempAddress.phone}
+                  onChange={(e) => setTempAddress({ ...tempAddress, phone: e.target.value })}
                   className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#ff2b75]"
                 />
               </div>
@@ -431,8 +841,7 @@ export default function CheckoutPage() {
                 <label className="text-[11px] font-bold text-gray-600 block mb-1">Email Address</label>
                 <input
                   type="email"
-                  required
-                  placeholder="e.g. name@example.com"
+                  placeholder="e.g. rahul@example.com (Optional)"
                   value={tempAddress.email}
                   onChange={(e) => setTempAddress({ ...tempAddress, email: e.target.value })}
                   className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#ff2b75]"
@@ -440,21 +849,11 @@ export default function CheckoutPage() {
               </div>
 
               <div>
-                <label className="text-[11px] font-bold text-gray-600 block mb-1">Phone Number</label>
-                <input
-                  type="tel"
-                  required
-                  value={tempAddress.phone}
-                  onChange={(e) => setTempAddress({ ...tempAddress, phone: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#ff2b75]"
-                />
-              </div>
-
-              <div>
-                <label className="text-[11px] font-bold text-gray-600 block mb-1">House No. / Street</label>
+                <label className="text-[11px] font-bold text-gray-600 block mb-1">House No. / Flat / Street *</label>
                 <input
                   type="text"
                   required
+                  placeholder="e.g. House No. 41, Street 3"
                   value={tempAddress.line1}
                   onChange={(e) => setTempAddress({ ...tempAddress, line1: e.target.value })}
                   className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#ff2b75]"
@@ -462,9 +861,10 @@ export default function CheckoutPage() {
               </div>
 
               <div>
-                <label className="text-[11px] font-bold text-gray-600 block mb-1">Landmark / Locality</label>
+                <label className="text-[11px] font-bold text-gray-600 block mb-1">Landmark / Area (Optional)</label>
                 <input
                   type="text"
+                  placeholder="e.g. Near Kaushik Academy"
                   value={tempAddress.line2}
                   onChange={(e) => setTempAddress({ ...tempAddress, line2: e.target.value })}
                   className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#ff2b75]"
@@ -472,10 +872,11 @@ export default function CheckoutPage() {
               </div>
 
               <div>
-                <label className="text-[11px] font-bold text-gray-600 block mb-1">City, Pincode & State</label>
+                <label className="text-[11px] font-bold text-gray-600 block mb-1">City, Pincode & State *</label>
                 <input
                   type="text"
                   required
+                  placeholder="e.g. Haridwar - 249401, Uttarakhand"
                   value={tempAddress.cityStateZip}
                   onChange={(e) => setTempAddress({ ...tempAddress, cityStateZip: e.target.value })}
                   className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#ff2b75]"
