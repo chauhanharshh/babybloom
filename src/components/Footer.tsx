@@ -1,7 +1,9 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import { MapPin, Mail, Phone, Heart } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { getStoreProfile } from "@/lib/profile";
 
 const Facebook = ({ size = 18 }: { size?: number }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
@@ -23,8 +25,42 @@ const YouTube = ({ size = 18 }: { size?: number }) => (
   </svg>
 );
 
-export default async function Footer() {
-  const profile = await getStoreProfile();
+interface FooterProfile {
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  state?: string;
+  phone?: string;
+  email?: string;
+  facebookUrl?: string;
+  instagramUrl?: string;
+}
+
+const DEFAULT_FOOTER_PROFILE: FooterProfile = {
+  addressLine1: "Khanna Nagar, House no. 41",
+  addressLine2: "Opposite Kaushik Academy",
+  city: "Haridwar",
+  state: "Uttarakhand",
+  phone: "+91 95200 42719",
+  email: "babybloom.bb2024@gmail.com",
+  facebookUrl: "https://facebook.com",
+  instagramUrl: "https://instagram.com",
+};
+
+export default function Footer() {
+  const [profile, setProfile] = useState<FooterProfile>(DEFAULT_FOOTER_PROFILE);
+
+  useEffect(() => {
+    fetch("/api/profile")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.success && data?.profile) {
+          setProfile(data.profile);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   return (
     <footer className="bg-white border-t border-pink-100 flex flex-col">
       {/* Top Footer Columns (Hidden on mobile to match the app-like reference mockup) */}

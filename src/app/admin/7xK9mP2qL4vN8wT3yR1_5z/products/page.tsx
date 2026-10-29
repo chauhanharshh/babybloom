@@ -7,6 +7,7 @@ import Link from "next/link";
 import ConfirmDialog from "@/components/admin/ConfirmDialog";
 import LazyImage from "@/components/LazyImage";
 import { ADMIN_BASE_PATH } from "@/lib/admin";
+import { sortAgeRanges } from "@/utils/ageRanges";
 
 type Product = {
   id: number;
@@ -36,6 +37,7 @@ type CategoryItem = {
 export default function AdminProducts() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<CategoryItem[]>([]);
+  const [ageRanges, setAgeRanges] = useState<{ id: number; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
@@ -119,13 +121,15 @@ export default function AdminProducts() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch products and categories on mount + auto refresh on tab focus
+  // Fetch products, categories and age ranges on mount + auto refresh on tab focus
   useEffect(() => {
     fetchProducts();
     fetchCategories();
+    fetchAgeRanges();
 
     const handleFocus = () => {
       fetchProducts();
+      fetchAgeRanges();
     };
     window.addEventListener("focus", handleFocus);
     return () => window.removeEventListener("focus", handleFocus);
@@ -138,6 +142,18 @@ export default function AdminProducts() {
       if (Array.isArray(data)) setCategories(data);
     } catch (err) {
       console.error("Failed to fetch categories", err);
+    }
+  };
+
+  const fetchAgeRanges = async () => {
+    try {
+      const res = await fetch(`/api/age-ranges?t=${Date.now()}`, { cache: "no-store" });
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        setAgeRanges(sortAgeRanges(data));
+      }
+    } catch (err) {
+      console.error("Failed to fetch age ranges", err);
     }
   };
 
@@ -164,6 +180,7 @@ export default function AdminProducts() {
   });
 
   const handleOpenModal = (product: Product | null = null) => {
+    fetchAgeRanges();
     if (product) {
       setEditingProduct(product);
       setFormData({
@@ -215,7 +232,7 @@ export default function AdminProducts() {
     if (!quickSubName.trim()) return;
     const catObj = categories.find((c) => c.name.toLowerCase() === formData.category.toLowerCase());
     if (!catObj) {
-      openAlert("Select Category", "Pehle ek valid category select karein jisme subcategory add karni hai.", "warning");
+      openAlert("Select Category", "Please select a valid parent category first before adding a subcategory.", "warning");
       return;
     }
     try {
@@ -276,7 +293,7 @@ export default function AdminProducts() {
 
     openConfirm({
       title: "Delete Product?",
-      message: `Kya aap sure hain ki aap ${prodName} ko permanently delete karna chahte hain?`,
+      message: `Are you sure you want to permanently delete ${prodName}? This action cannot be undone.`,
       confirmText: "Yes, Delete Product",
       type: "danger",
       action: async () => {
@@ -316,7 +333,7 @@ export default function AdminProducts() {
       setFormData(prev => ({ ...prev, imageUrl: url }));
     } catch (err) {
       console.error("Image upload failed", err);
-      setImageUploadError("Upload fail hua. Dobara try karo ya URL paste karo.");
+      setImageUploadError("Image upload failed. Please try again or paste an image URL below.");
     } finally {
       setImageUploading(false);
       // Reset file input so same file can be re-selected if needed
@@ -527,7 +544,7 @@ export default function AdminProducts() {
                         <div className="flex flex-col items-center gap-3">
                           <Loader2 className="w-10 h-10 text-primary animate-spin" />
                           <p className="text-sm font-semibold text-primary">Uploading...</p>
-                          <p className="text-xs text-gray-400">Cloudinary pe upload ho raha hai</p>
+                          <p className="text-xs text-gray-400">Uploading to cloud storage...</p>
                         </div>
                       ) : formData.imageUrl ? (
                         <div className="absolute inset-0 w-full h-full">
@@ -544,7 +561,7 @@ export default function AdminProducts() {
                             <UploadCloud className="w-6 h-6" />
                           </div>
                           <p className="text-sm font-medium text-gray-900">Click to upload image</p>
-                          <p className="text-xs text-gray-500 mt-1">PNG, JPG, GIF — Cloudinary pe save hoga</p>
+                          <p className="text-xs text-gray-500 mt-1">PNG, JPG, GIF, WebP up to 5MB</p>
                         </div>
                       )}
 
@@ -767,14 +784,33 @@ export default function AdminProducts() {
                           onChange={(e) => setFormData({ ...formData, ageGroup: e.target.value })}
                           className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors font-medium text-gray-700 cursor-pointer text-sm"
                         >
-                          <option value="0-1 Yrs">0-1 Yrs</option>
-                          <option value="1-2 Yrs">1-2 Yrs</option>
-                          <option value="2-3 Yrs">2-3 Yrs</option>
-                          <option value="3-4 Yrs">3-4 Yrs</option>
-                          <option value="4-5 Yrs">4-5 Yrs</option>
-                          <option value="5-6 Yrs">5-6 Yrs</option>
-                          <option value="1-6 Yrs">1-6 Yrs</option>
-                          <option value="0-12 Months">0-12 Months</option>
+                          {(() => {
+                            const dbOptions = ageRanges.map((r) => r.name);
+                            const fallbackDefaults = [
+                              "0-6 Months",
+                              "6-12 Months",
+                              "0-1 Yrs",
+                              "1-2 Yrs",
+                              "2-3 Yrs",
+                              "3-4 Yrs",
+                              "4-5 Yrs",
+                              "5-6 Yrs",
+                              "1-6 Yrs",
+                            ];
+                            const baseList = dbOptions.length > 0 ? dbOptions : fallbackDefaults;
+                            const uniqueOptions = Array.from(
+                              new Set([
+                                ...baseList,
+                                ...(formData.ageGroup ? [formData.ageGroup] : []),
+                              ])
+                            );
+                            const sortedOptions = sortAgeRanges(uniqueOptions);
+                            return sortedOptions.map((name) => (
+                              <option key={name} value={name}>
+                                {name}
+                              </option>
+                            ));
+                          })()}
                         </select>
                       </div>
                     </div>

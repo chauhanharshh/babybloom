@@ -29,6 +29,15 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import type { StoreProfileData } from "@/lib/profile";
 
+export interface AddressData {
+  name: string;
+  email: string;
+  phone: string;
+  line1: string;
+  line2: string;
+  cityStateZip: string;
+}
+
 export default function CheckoutPage() {
   const router = useRouter();
   const { cart, totalPrice, totalItems, clearCart, appliedCoupon } = useCart();
@@ -39,7 +48,7 @@ export default function CheckoutPage() {
   const [copiedUpi, setCopiedUpi] = useState(false);
 
   // Address state - Empty by default (no hardcoded/prefilled dummy data)
-  const [address, setAddress] = useState({
+  const [address, setAddress] = useState<AddressData>({
     name: "",
     email: "",
     phone: "",
@@ -50,7 +59,6 @@ export default function CheckoutPage() {
 
   // Modal for adding / changing address
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
-  const [tempAddress, setTempAddress] = useState(address);
 
   // Load customer address from localStorage if previously entered
   useEffect(() => {
@@ -60,7 +68,6 @@ export default function CheckoutPage() {
         const parsed = JSON.parse(saved);
         if (parsed?.name && parsed?.line1) {
           setAddress(parsed);
-          setTempAddress(parsed);
         }
       }
     } catch {
@@ -122,16 +129,11 @@ export default function CheckoutPage() {
   const displayTotal = finalTotal;
   const displayItemsCount = totalItems;
 
-  const handleSaveAddress = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!tempAddress.name.trim() || !tempAddress.phone.trim() || !tempAddress.line1.trim() || !tempAddress.cityStateZip.trim()) {
-      alert("Please fill in Full Name, Phone, Address, and City/Pincode.");
-      return;
-    }
-    setAddress(tempAddress);
+  const handleSaveAddress = (newAddress: AddressData) => {
+    setAddress(newAddress);
     setIsAddressModalOpen(false);
     try {
-      localStorage.setItem("babybloom_customer_address", JSON.stringify(tempAddress));
+      localStorage.setItem("babybloom_customer_address", JSON.stringify(newAddress));
     } catch {
       // ignore
     }
@@ -146,7 +148,6 @@ export default function CheckoutPage() {
     // Require address before placing order
     if (!address.name.trim() || !address.phone.trim() || !address.line1.trim() || !address.cityStateZip.trim()) {
       alert("Please enter your complete delivery address before placing your order.");
-      setTempAddress(address);
       setIsAddressModalOpen(true);
       return;
     }
@@ -336,10 +337,7 @@ export default function CheckoutPage() {
                   {address.name && address.line1 && (
                     <button
                       type="button"
-                      onClick={() => {
-                        setTempAddress(address);
-                        setIsAddressModalOpen(true);
-                      }}
+                      onClick={() => setIsAddressModalOpen(true)}
                       className="text-xs font-bold text-[#ff2b75] hover:text-[#e01d62] flex items-center gap-0.5 transition-colors"
                     >
                       <span>Change</span>
@@ -369,10 +367,7 @@ export default function CheckoutPage() {
 
                     <button
                       type="button"
-                      onClick={() => {
-                        setTempAddress(address);
-                        setIsAddressModalOpen(true);
-                      }}
+                      onClick={() => setIsAddressModalOpen(true)}
                       className="text-xs font-bold text-[#ff2b75] hover:text-[#e01d62] px-2 py-1 transition-colors"
                     >
                       Edit
@@ -380,10 +375,7 @@ export default function CheckoutPage() {
                   </div>
                 ) : (
                   <div
-                    onClick={() => {
-                      setTempAddress(address);
-                      setIsAddressModalOpen(true);
-                    }}
+                    onClick={() => setIsAddressModalOpen(true)}
                     className="bg-white rounded-2xl p-5 sm:p-6 border-2 border-dashed border-pink-200 hover:border-[#ff2b75] cursor-pointer text-center space-y-2 transition-all hover:bg-pink-50/20 group shadow-2xs"
                   >
                     <div className="w-10 h-10 rounded-full bg-pink-50 text-[#ff2b75] flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
@@ -424,7 +416,7 @@ export default function CheckoutPage() {
                       <div className="text-xs text-amber-900 space-y-1">
                         <p className="font-bold">Online Checkout Temporarily Paused</p>
                         <p className="text-amber-700">
-                          Store par abhi online payment methods off hain. Aap direct WhatsApp par order place kar sakte hain!
+                          Online checkout is temporarily paused for this store. You can place your order directly via WhatsApp!
                         </p>
                       </div>
                     </div>
@@ -485,7 +477,7 @@ export default function CheckoutPage() {
                             <span className="text-xs sm:text-sm font-medium text-gray-500 line-through">
                               Cash on Delivery (COD)
                             </span>
-                            <p className="text-[10px] text-gray-400">Store dwara abhi disabled hai</p>
+                            <p className="text-[10px] text-gray-400">Currently disabled by store</p>
                           </div>
                           <span className="text-[10px] font-semibold text-gray-400 bg-gray-200 px-2 py-0.5 rounded">
                             Unavailable
@@ -564,7 +556,7 @@ export default function CheckoutPage() {
                                 </div>
                               )}
                               <p className="text-[10px] text-gray-400">
-                                Order place karne ke baad WhatsApp confirm button se receipt share karein.
+                                After placing your order, please share your payment receipt via the WhatsApp confirm button.
                               </p>
                             </div>
                           </div>
@@ -581,7 +573,7 @@ export default function CheckoutPage() {
                             <span className="text-xs sm:text-sm font-medium text-gray-500 line-through">
                               UPI (GPay, PhonePe, Paytm)
                             </span>
-                            <p className="text-[10px] text-gray-400">UPI abhi store par disabled hai</p>
+                            <p className="text-[10px] text-gray-400">UPI is currently disabled</p>
                           </div>
                           <span className="text-[10px] font-semibold text-gray-400 bg-gray-200 px-2 py-0.5 rounded">
                             Unavailable
@@ -626,7 +618,7 @@ export default function CheckoutPage() {
                             <span className="text-xs sm:text-sm font-medium text-gray-500 line-through">
                               Credit / Debit Card
                             </span>
-                            <p className="text-[10px] text-gray-400">Card payments disabled hain</p>
+                            <p className="text-[10px] text-gray-400">Card payments are disabled</p>
                           </div>
                           <span className="text-[10px] font-semibold text-gray-400 bg-gray-200 px-2 py-0.5 rounded">
                             Unavailable
@@ -706,7 +698,7 @@ export default function CheckoutPage() {
                             <span className="text-xs sm:text-sm font-medium text-gray-500 line-through">
                               Net Banking
                             </span>
-                            <p className="text-[10px] text-gray-400">Net banking abhi disabled hai</p>
+                            <p className="text-[10px] text-gray-400">Net banking is currently disabled</p>
                           </div>
                           <span className="text-[10px] font-semibold text-gray-400 bg-gray-200 px-2 py-0.5 rounded">
                             Unavailable
@@ -796,115 +788,157 @@ export default function CheckoutPage() {
       </div>
 
       {/* Add / Edit Address Modal */}
-      {isAddressModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
-          <div className="bg-white w-full max-w-md rounded-t-3xl sm:rounded-2xl p-5 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-gray-100">
-              <h3 className="font-extrabold text-base text-gray-900">
-                {address.name && address.line1 ? "Edit Delivery Address" : "Add Delivery Address"}
-              </h3>
-              <button
-                type="button"
-                onClick={() => setIsAddressModalOpen(false)}
-                className="p-1 text-gray-400 hover:text-gray-600 rounded-full"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveAddress} className="space-y-3">
-              <div>
-                <label className="text-[11px] font-bold text-gray-600 block mb-1">Full Name *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Rahul Sharma"
-                  value={tempAddress.name}
-                  onChange={(e) => setTempAddress({ ...tempAddress, name: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#ff2b75]"
-                />
-              </div>
-
-              <div>
-                <label className="text-[11px] font-bold text-gray-600 block mb-1">Phone Number *</label>
-                <input
-                  type="tel"
-                  required
-                  placeholder="e.g. +91 98765 43210"
-                  value={tempAddress.phone}
-                  onChange={(e) => setTempAddress({ ...tempAddress, phone: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#ff2b75]"
-                />
-              </div>
-
-              <div>
-                <label className="text-[11px] font-bold text-gray-600 block mb-1">Email Address</label>
-                <input
-                  type="email"
-                  placeholder="e.g. rahul@example.com (Optional)"
-                  value={tempAddress.email}
-                  onChange={(e) => setTempAddress({ ...tempAddress, email: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#ff2b75]"
-                />
-              </div>
-
-              <div>
-                <label className="text-[11px] font-bold text-gray-600 block mb-1">House No. / Flat / Street *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. House No. 41, Street 3"
-                  value={tempAddress.line1}
-                  onChange={(e) => setTempAddress({ ...tempAddress, line1: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#ff2b75]"
-                />
-              </div>
-
-              <div>
-                <label className="text-[11px] font-bold text-gray-600 block mb-1">Landmark / Area (Optional)</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Near Kaushik Academy"
-                  value={tempAddress.line2}
-                  onChange={(e) => setTempAddress({ ...tempAddress, line2: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#ff2b75]"
-                />
-              </div>
-
-              <div>
-                <label className="text-[11px] font-bold text-gray-600 block mb-1">City, Pincode & State *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Haridwar - 249401, Uttarakhand"
-                  value={tempAddress.cityStateZip}
-                  onChange={(e) => setTempAddress({ ...tempAddress, cityStateZip: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#ff2b75]"
-                />
-              </div>
-
-              <div className="pt-2 flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsAddressModalOpen(false)}
-                  className="flex-1 py-2.5 rounded-xl border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 py-2.5 rounded-xl bg-[#ff2b75] hover:bg-[#e01d62] text-white text-xs font-bold shadow-xs"
-                >
-                  Save Address
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <AddressModal
+        isOpen={isAddressModalOpen}
+        initialAddress={address}
+        onSave={handleSaveAddress}
+        onClose={() => setIsAddressModalOpen(false)}
+      />
       <div className="hidden md:block">
         <Footer />
       </div>
     </main>
+  );
+}
+
+interface AddressModalProps {
+  isOpen: boolean;
+  initialAddress: AddressData;
+  onSave: (address: AddressData) => void;
+  onClose: () => void;
+}
+
+function AddressModal({ isOpen, initialAddress, onSave, onClose }: AddressModalProps) {
+  const [formData, setFormData] = useState<AddressData>(initialAddress);
+
+  useEffect(() => {
+    if (isOpen) {
+      setFormData(initialAddress);
+    }
+  }, [isOpen, initialAddress]);
+
+  if (!isOpen) return null;
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (
+      !formData.name.trim() ||
+      !formData.phone.trim() ||
+      !formData.line1.trim() ||
+      !formData.cityStateZip.trim()
+    ) {
+      alert("Please fill in Full Name, Phone, Address, and City/Pincode.");
+      return;
+    }
+    onSave(formData);
+  };
+
+  const isEditing = Boolean(initialAddress.name && initialAddress.line1);
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <div className="bg-white w-full max-w-md rounded-t-3xl sm:rounded-2xl p-5 shadow-2xl space-y-4">
+        <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+          <h3 className="font-extrabold text-base text-gray-900">
+            {isEditing ? "Edit Delivery Address" : "Add Delivery Address"}
+          </h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1 text-gray-400 hover:text-gray-600 rounded-full cursor-pointer"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div>
+            <label className="text-[11px] font-bold text-gray-600 block mb-1">Full Name *</label>
+            <input
+              type="text"
+              required
+              placeholder="e.g. Rahul Sharma"
+              value={formData.name}
+              onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
+              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#ff2b75]"
+            />
+          </div>
+
+          <div>
+            <label className="text-[11px] font-bold text-gray-600 block mb-1">Phone Number *</label>
+            <input
+              type="tel"
+              required
+              placeholder="e.g. +91 98765 43210"
+              value={formData.phone}
+              onChange={(e) => setFormData((prev) => ({ ...prev, phone: e.target.value }))}
+              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#ff2b75]"
+            />
+          </div>
+
+          <div>
+            <label className="text-[11px] font-bold text-gray-600 block mb-1">Email Address</label>
+            <input
+              type="email"
+              placeholder="e.g. rahul@example.com (Optional)"
+              value={formData.email}
+              onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
+              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#ff2b75]"
+            />
+          </div>
+
+          <div>
+            <label className="text-[11px] font-bold text-gray-600 block mb-1">House No. / Flat / Street *</label>
+            <input
+              type="text"
+              required
+              placeholder="e.g. House No. 41, Street 3"
+              value={formData.line1}
+              onChange={(e) => setFormData((prev) => ({ ...prev, line1: e.target.value }))}
+              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#ff2b75]"
+            />
+          </div>
+
+          <div>
+            <label className="text-[11px] font-bold text-gray-600 block mb-1">Landmark / Area (Optional)</label>
+            <input
+              type="text"
+              placeholder="e.g. Near Kaushik Academy"
+              value={formData.line2}
+              onChange={(e) => setFormData((prev) => ({ ...prev, line2: e.target.value }))}
+              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#ff2b75]"
+            />
+          </div>
+
+          <div>
+            <label className="text-[11px] font-bold text-gray-600 block mb-1">City, Pincode & State *</label>
+            <input
+              type="text"
+              required
+              placeholder="e.g. Haridwar - 249401, Uttarakhand"
+              value={formData.cityStateZip}
+              onChange={(e) => setFormData((prev) => ({ ...prev, cityStateZip: e.target.value }))}
+              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#ff2b75]"
+            />
+          </div>
+
+          <div className="pt-2 flex gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 py-2.5 rounded-xl border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-50 cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="flex-1 py-2.5 rounded-xl bg-[#ff2b75] hover:bg-[#e01d62] text-white text-xs font-bold shadow-xs cursor-pointer"
+            >
+              Save Address
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }

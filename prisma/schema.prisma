@@ -127,3 +127,12 @@ model StoreProfile {
   updatedAt          DateTime @updatedAt
 }
 
+model AgeRange {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+

@@ -136,7 +136,7 @@ export default async function AdminDashboard() {
               Offers & Hero Banners
             </h2>
             <p className="text-xs text-white/90">
-              Hero slider aur discount offers manage karein.
+              Manage hero slider banners and promotional discount offers.
             </p>
           </div>
           <Link
@@ -154,7 +154,7 @@ export default async function AdminDashboard() {
               Categories
             </h2>
             <p className="text-xs text-white/90">
-              Nayi categories aur subcategories create karein.
+              Create and organize categories, subcategories, and age ranges.
             </p>
           </div>
           <Link
@@ -172,7 +172,7 @@ export default async function AdminDashboard() {
               Store & Payment Settings
             </h2>
             <p className="text-xs text-white/90">
-              Dukaan details, WhatsApp & COD/UPI payment methods on/off.
+              Configure store details, WhatsApp orders, and payment methods.
             </p>
           </div>
           <Link

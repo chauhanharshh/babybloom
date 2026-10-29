@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, Search, ArrowUpDown, SlidersHorizontal, Check } from "lucide-react";
@@ -28,6 +28,16 @@ export default function CategoryListingView({
   const [activeSubcategory, setActiveSubcategory] = useState("All");
   const [sortBy, setSortBy] = useState<"featured" | "price-asc" | "price-desc">("featured");
   const [isSortOpen, setIsSortOpen] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const sub = params.get("sub");
+      if (sub) {
+        setActiveSubcategory(sub);
+      }
+    }
+  }, []);
 
   // Filter & Sort
   const filteredProducts = useMemo(() => {
@@ -105,7 +115,7 @@ export default function CategoryListingView({
           {/* Subcategory Chips (Horizontal Scroll on Mobile, Wrapped on Desktop) */}
           <div className="flex overflow-x-auto sm:flex-wrap no-scrollbar gap-2 pb-1 sm:pb-0" style={{ scrollbarWidth: "none" }}>
             {subcategories.map((sub) => {
-              const isActive = activeSubcategory === sub;
+              const isActive = activeSubcategory.toLowerCase() === sub.toLowerCase();
               return (
                 <button
                   key={sub}

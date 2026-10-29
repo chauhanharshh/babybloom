@@ -20,6 +20,97 @@
   font-family: var(--font-great-vibes), cursive;
 }
 
+/* Mega menu hover trigger & transitions */
+.nav-item-group {
+  position: static;
+}
+
+.nav-mega-menu {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  width: 100%;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s ease;
+  pointer-events: none !important;
+  z-index: 50;
+}
+
+.nav-mega-card {
+  position: relative;
+  pointer-events: auto !important;
+}
+
+.nav-mega-card::before {
+  content: "";
+  position: absolute;
+  top: -16px;
+  left: 0;
+  right: 0;
+  height: 16px;
+}
+
+.nav-item-group:hover > .nav-mega-menu,
+.nav-item-group.is-active > .nav-mega-menu {
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: translateY(0) !important;
+}
+
+.nav-item-group:hover > a .nav-chevron-trigger,
+.nav-item-group.is-active > a .nav-chevron-trigger,
+.nav-item-group:hover > button .nav-chevron-trigger,
+.nav-item-group.is-active > button .nav-chevron-trigger {
+  transform: rotate(180deg) !important;
+  color: #ff2b75 !important;
+}
+
+.nav-item-group:hover > a.nav-link-trigger,
+.nav-item-group.is-active > a.nav-link-trigger,
+.nav-item-group:hover > button.nav-link-trigger,
+.nav-item-group.is-active > button.nav-link-trigger {
+  color: #ff2b75 !important;
+  border-bottom-color: #ff2b75 !important;
+  font-weight: 700 !important;
+}
+
+/* Floating dropdown for More categories */
+.nav-item-group-more {
+  position: relative !important;
+}
+
+.nav-more-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-4px);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
+  pointer-events: none;
+  z-index: 50;
+}
+
+.nav-more-dropdown::before {
+  content: "";
+  position: absolute;
+  top: -24px;
+  left: 0;
+  right: 0;
+  height: 24px;
+}
+
+.nav-item-group:hover > .nav-more-dropdown,
+.nav-item-group.is-active > .nav-more-dropdown {
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: translateX(-50%) translateY(0) !important;
+  pointer-events: auto !important;
+}
+
 /* Premium Skeleton Shimmer Animations */
 @keyframes shimmer {
   0% {

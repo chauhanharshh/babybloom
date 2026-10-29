@@ -146,7 +146,7 @@ export default function AdminProfilePage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-3">
         <RefreshCw className="w-8 h-8 text-[#ff2b75] animate-spin" />
-        <p className="text-sm font-medium text-gray-500">Store Profile load ho raha hai...</p>
+        <p className="text-sm font-medium text-gray-500">Loading store profile...</p>
       </div>
     );
   }
@@ -172,7 +172,7 @@ export default function AdminProfilePage() {
                 Store Profile & Payment Methods
               </h1>
               <p className="text-xs md:text-sm text-gray-500">
-                Apni dukaan ki details (Name, WhatsApp, Address) aur payment options (COD, UPI, Net Banking) ko on/off karein.
+                Configure your store details (Name, WhatsApp, Address) and enable or disable payment methods (COD, UPI, Net Banking).
               </p>
             </div>
           </div>
@@ -216,7 +216,7 @@ export default function AdminProfilePage() {
         <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center gap-3 text-emerald-800 text-sm animate-in fade-in slide-in-from-top-2">
           <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
           <div className="font-medium">
-            Store Profile aur Payment Methods successfully update ho gaye hain! Checkout page par naye changes turant apply ho gaye hain.
+            Store profile and payment methods updated successfully! Changes are live on checkout immediately.
           </div>
         </div>
       )}
@@ -303,7 +303,7 @@ export default function AdminProfilePage() {
           }`}
         >
           <Store className="w-4 h-4" />
-          <span>1. Dukaan Details (Store Profile)</span>
+          <span>1. Store Details</span>
         </button>
 
         <button
@@ -345,7 +345,7 @@ export default function AdminProfilePage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                  Store / Dukaan Name *
+                  Store Name *
                 </label>
                 <input
                   type="text"
@@ -565,7 +565,7 @@ export default function AdminProfilePage() {
             <div className="text-xs text-gray-700 space-y-1">
               <p className="font-bold text-gray-900">Payment Controls Guide:</p>
               <p>
-                Aap jis payment method ko <span className="font-semibold text-emerald-600">ON</span> karenge, customer ko checkout page par wahi option dikhega. Agar aap kisi method ko <span className="font-semibold text-rose-600">OFF</span> karte hain, toh wo checkout se turant hat jayega.
+                Payment methods turned <span className="font-semibold text-emerald-600">ON</span> will be available to customers on the checkout page. Methods turned <span className="font-semibold text-rose-600">OFF</span> are hidden instantly.
               </p>
             </div>
           </div>
@@ -591,7 +591,7 @@ export default function AdminProfilePage() {
                     </span>
                   </div>
                   <p className="text-xs text-gray-500 mt-0.5">
-                    Order deliver hone par customer cash pay karega.
+                    Customer pays cash upon delivery of the order.
                   </p>
                 </div>
               </div>
@@ -648,7 +648,7 @@ export default function AdminProfilePage() {
                     </span>
                   </div>
                   <p className="text-xs text-gray-500 mt-0.5">
-                    Customer seedhe aapke UPI ID ya QR code par payment kar sakta hai.
+                    Customers can pay directly via your store UPI ID or scan QR code.
                   </p>
                 </div>
               </div>
@@ -684,7 +684,7 @@ export default function AdminProfilePage() {
                       className="w-full px-3.5 py-2.5 text-sm bg-white rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#ff2b75]/20 focus:border-[#ff2b75]"
                     />
                     <p className="text-[11px] text-gray-500 mt-1">
-                      Customer ko checkout me yeh UPI ID dikhegi jisme wo GPay/PhonePe se pay karega.
+                      This UPI ID is displayed on checkout for customers paying via GPay, PhonePe, or Paytm.
                     </p>
                   </div>
 
@@ -726,7 +726,7 @@ export default function AdminProfilePage() {
                     </span>
                   </div>
                   <p className="text-xs text-gray-500 mt-0.5">
-                    Visa, Mastercard, RuPay & Maestro card payments enable ya disable karein.
+                    Enable or disable Visa, Mastercard, RuPay & Maestro card payments.
                   </p>
                 </div>
               </div>
@@ -768,7 +768,7 @@ export default function AdminProfilePage() {
                     </span>
                   </div>
                   <p className="text-xs text-gray-500 mt-0.5">
-                    Bank accounts transfer aur direct internet banking.
+                    Bank account transfers and direct internet banking.
                   </p>
                 </div>
               </div>
@@ -852,7 +852,7 @@ export default function AdminProfilePage() {
                 Checkout Page Payment Options (Customer Preview)
               </h2>
               <p className="text-xs text-gray-500 mt-1">
-                Aapke upar kiye gaye on/off selections ke anusaar customer ko checkout page par aisi options dikhengi:
+                Here is a live simulation of what customers see on checkout based on your settings above:
               </p>
             </div>
 
@@ -959,7 +959,7 @@ export default function AdminProfilePage() {
 
               {enabledCount === 0 && (
                 <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs font-medium text-center">
-                  ⚠️ Saare payment methods OFF hain! Customer checkout nahi kar payenge. Kam se kam ek payment method ON rakhein.
+                  ⚠️ All payment methods are disabled! Customers will not be able to complete checkout. Please enable at least one payment method.
                 </div>
               )}
             </div>
@@ -1000,7 +1000,7 @@ export default function AdminProfilePage() {
         <div className="sticky bottom-4 z-40 bg-gray-900 text-white px-5 py-3.5 rounded-2xl shadow-xl flex items-center justify-between gap-4 animate-in fade-in slide-in-from-bottom-2">
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse" />
-            <span className="text-xs sm:text-sm font-semibold">Unsaved changes hain! Save karna na bhoolein.</span>
+            <span className="text-xs sm:text-sm font-semibold">You have unsaved changes. Don't forget to save!</span>
           </div>
 
           <div className="flex items-center gap-2">

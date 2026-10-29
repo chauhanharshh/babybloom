@@ -224,7 +224,7 @@ export default function OffersAndBannersPage() {
       setBannerForm((prev) => ({ ...prev, imageUrl: url }));
     } catch (err) {
       console.error("Banner upload failed", err);
-      setBannerUploadError("Upload fail hua. Image URL paste karo ya dobara try karo.");
+      setBannerUploadError("Banner upload failed. Please try again or paste an image URL.");
     } finally {
       setBannerUploading(false);
       if (bannerFileRef.current) bannerFileRef.current.value = "";
@@ -261,7 +261,7 @@ export default function OffersAndBannersPage() {
   const handleSaveBanner = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!bannerForm.imageUrl) {
-      setBannerUploadError("Kripya banner image upload karein ya URL daalein.");
+      setBannerUploadError("Please upload a banner image or enter an image URL.");
       return;
     }
     setSavingBanner(true);
@@ -308,7 +308,7 @@ export default function OffersAndBannersPage() {
   const handleDeleteBanner = (id: number) => {
     openConfirm({
       title: "Delete Hero Banner?",
-      message: "Kya aap sure hain ki aap is hero slider banner ko delete karna chahte hain? Website se ye banner remove ho jayega.",
+      message: "Are you sure you want to delete this hero slider banner? It will be removed from the homepage.",
       confirmText: "Yes, Delete Banner",
       type: "danger",
       action: async () => {
@@ -361,7 +361,7 @@ export default function OffersAndBannersPage() {
   const handleSaveOffer = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!offerForm.title.trim()) {
-      openAlert("Title Required", "Kripya offer ka title enter karein (e.g. Diwal Dhamaka, Flat 20% Off).", "warning");
+      openAlert("Title Required", "Please enter an offer title (e.g. Summer Sale, Flat 20% Off).", "warning");
       return;
     }
     setSavingOffer(true);
@@ -411,7 +411,7 @@ export default function OffersAndBannersPage() {
 
     openConfirm({
       title: "Delete Offer?",
-      message: `Kya aap sure hain ki aap ${offerTitle} ko permanently delete karna chahte hain? Iske discounts disable ho jayenge.`,
+      message: `Are you sure you want to permanently delete ${offerTitle}? Its discounts will be disabled.`,
       confirmText: "Yes, Delete Offer",
       type: "danger",
       action: async () => {
@@ -455,7 +455,7 @@ export default function OffersAndBannersPage() {
             Offers & Banners
           </h1>
           <p className="text-gray-500 mt-1">
-            Hero section ke banners badlo aur puri website ya particular products par offers chalayein.
+            Manage homepage hero banners and launch sitewide or product-specific promotional discounts.
           </p>
         </div>
 
@@ -515,9 +515,9 @@ export default function OffersAndBannersPage() {
           <div className="bg-pink-50 border border-pink-200 rounded-xl p-4 flex items-start gap-3">
             <Sparkles className="w-5 h-5 text-primary shrink-0 mt-0.5" />
             <div className="text-xs sm:text-sm text-gray-700">
-              <span className="font-bold text-gray-900">Hero Section Banners:</span> Yahan se
-              aap homepage slider ki images change, add ya update kar sakte hain. Active toggle ko
-              use karke kisi bhi banner ko hide ya show kar sakte hain bina delete kiye.
+              <span className="font-bold text-gray-900">Hero Section Banners:</span> Update,
+              add, or reorder homepage slider banners. Use the Active toggle to show or hide banners
+              without permanently deleting them.
             </div>
           </div>
 
@@ -532,7 +532,7 @@ export default function OffersAndBannersPage() {
               <ImageIcon className="w-12 h-12 text-gray-300 mb-3" />
               <h3 className="text-lg font-bold text-gray-900">No Banners Found</h3>
               <p className="text-sm text-gray-500 max-w-sm mt-1">
-                Aapke hero section me abhi koi banner nahi hai. Naya banner add karein.
+                There are no banners in your hero section yet. Add a new banner to get started.
               </p>
               <button
                 onClick={() => handleOpenBannerModal()}
@@ -644,11 +644,10 @@ export default function OffersAndBannersPage() {
           <div className="bg-pink-50 border border-pink-200 rounded-xl p-4 flex items-start gap-3">
             <Percent className="w-5 h-5 text-primary shrink-0 mt-0.5" />
             <div className="text-xs sm:text-sm text-gray-700">
-              <span className="font-bold text-gray-900">Offers & Discounts Engine:</span> Yahan
-              se aap <span className="font-semibold text-primary">Puri Website</span> par flat
-              discount chala sakte hain ya <span className="font-semibold text-primary">Particular Selected Products</span>{" "}
-              par offer laga sakte hain. Active offer aate hi store par discounted prices aur offer
-              badges automatic calculate ho jayenge!
+              <span className="font-bold text-gray-900">Offers & Discounts Engine:</span> Run
+              flat discounts across the <span className="font-semibold text-primary">Entire Website</span>{" "}
+              or apply targeted offers to <span className="font-semibold text-primary">Selected Products</span>.
+              Active offers automatically calculate discounted prices and display promotional badges across the store!
             </div>
           </div>
 
@@ -663,8 +662,7 @@ export default function OffersAndBannersPage() {
               <Tag className="w-12 h-12 text-gray-300 mb-3" />
               <h3 className="text-lg font-bold text-gray-900">No Offers Created Yet</h3>
               <p className="text-sm text-gray-500 max-w-sm mt-1">
-                Puri website ya selected products par discount chalane ke liye naya offer create
-                karein.
+                Create a new promotional offer for the entire store or specific products.
               </p>
               <button
                 onClick={() => handleOpenOfferModal()}
@@ -820,7 +818,7 @@ export default function OffersAndBannersPage() {
                   {editingBanner ? "Edit Hero Banner" : "Add New Hero Banner"}
                 </h2>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  Homepage hero slider ki image aur link set karein.
+                  Set the image and destination link for the homepage hero slider.
                 </p>
               </div>
               <button
@@ -1033,7 +1031,7 @@ export default function OffersAndBannersPage() {
                   {editingOffer ? "Edit Offer" : "Create New Offer"}
                 </h2>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  Puri website ya specific products par discount chalao.
+                  Apply discounts sitewide, by category, or on specific products.
                 </p>
               </div>
               <button
@@ -1091,7 +1089,7 @@ export default function OffersAndBannersPage() {
               {/* Offer Scope (Radio Choices) */}
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-2">
-                  Offer Kahan Chalana Hai? (Scope)
+                  Offer Scope (Where to Apply)
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                   {/* Entire Website */}
@@ -1105,10 +1103,10 @@ export default function OffersAndBannersPage() {
                   >
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-base">🌐</span>
-                      <span className="font-bold text-xs">Puri Website</span>
+                      <span className="font-bold text-xs">Sitewide</span>
                     </div>
                     <p className="text-[10px] text-gray-500 leading-tight">
-                      All products par instant discount apply hoga.
+                      Applies an instant discount across all store products.
                     </p>
                   </div>
 
@@ -1123,10 +1121,10 @@ export default function OffersAndBannersPage() {
                   >
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-base">👗</span>
-                      <span className="font-bold text-xs">Particular Products</span>
+                      <span className="font-bold text-xs">Specific Products</span>
                     </div>
                     <p className="text-[10px] text-gray-500 leading-tight">
-                      Chune hue products par hi offer chalega.
+                      Discount applies only to selected products.
                     </p>
                   </div>
 
@@ -1144,7 +1142,7 @@ export default function OffersAndBannersPage() {
                       <span className="font-bold text-xs">Category Wise</span>
                     </div>
                     <p className="text-[10px] text-gray-500 leading-tight">
-                      Newborn, Girls ya Boys category par.
+                      Applies to all products in the selected category.
                     </p>
                   </div>
                 </div>

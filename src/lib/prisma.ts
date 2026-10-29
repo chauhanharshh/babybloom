@@ -45,7 +45,12 @@ declare const globalThis: {
 
 const getPrisma = () => {
   const existing = (globalThis as unknown as { prismaGlobal?: PrismaClient }).prismaGlobal;
-  if (existing && (existing as unknown as { banner?: unknown }).banner && (existing as unknown as { offer?: unknown }).offer) {
+  if (
+    existing &&
+    (existing as unknown as { banner?: unknown }).banner &&
+    (existing as unknown as { offer?: unknown }).offer &&
+    (existing as unknown as { ageRange?: unknown }).ageRange
+  ) {
     return existing;
   }
   const fresh = prismaClientSingleton();
@@ -55,7 +60,13 @@ const getPrisma = () => {
   return fresh;
 };
 
-const prisma = getPrisma();
+const prisma = new Proxy({} as PrismaClient, {
+  get(_target, prop) {
+    const client = getPrisma() as any;
+    return client[prop];
+  },
+});
 
 export default prisma;
+
 

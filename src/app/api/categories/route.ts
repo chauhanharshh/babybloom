@@ -10,6 +10,9 @@ function slugify(text: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 // GET /api/categories - List all categories with subcategories and product counts
 export async function GET() {
   try {
