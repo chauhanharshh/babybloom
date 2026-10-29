@@ -389,13 +389,6 @@ export default function Navbar() {
                   <div 
                     className="nav-mega-menu"
                   >
-                    {/* Invisible hit-area that closes dropdown when mouse moves outside */}
-                    <div 
-                      className="fixed inset-0 top-[64px] sm:top-[80px] bg-transparent pointer-events-auto cursor-default -z-10" 
-                      onMouseEnter={() => setActiveMenu(null)}
-                      onClick={() => setActiveMenu(null)}
-                    />
-
                     <div className="max-w-4xl lg:max-w-5xl mx-auto px-4 pt-1 pb-4 pointer-events-none">
                       <div 
                         onMouseEnter={cancelClose}
@@ -626,13 +619,6 @@ export default function Navbar() {
                   <div 
                     className="nav-mega-menu"
                   >
-                    {/* Invisible hit-area that closes dropdown when mouse moves outside */}
-                    <div 
-                      className="fixed inset-0 top-[64px] sm:top-[80px] bg-transparent pointer-events-auto cursor-default -z-10" 
-                      onMouseEnter={() => setActiveMenu(null)}
-                      onClick={() => setActiveMenu(null)}
-                    />
-
                     <div className="max-w-4xl mx-auto px-4 pt-1 pb-4 pointer-events-none">
                       <div 
                         onMouseEnter={cancelClose}
@@ -717,7 +703,6 @@ export default function Navbar() {
                                         sizes="140px"
                                         className="object-cover group-hover/card:scale-105 transition-transform duration-300"
                                       />
-                                      <div className="absolute inset-0 bg-black/0 group-hover/card:bg-black/5 transition-colors" />
                                     </div>
                                     <p className="text-[11px] sm:text-xs font-bold text-gray-900 mt-1.5 truncate group-hover/card:text-[#ff2b75] transition-colors">
                                       {p.name}
