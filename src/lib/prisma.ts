@@ -49,14 +49,13 @@ const getPrisma = () => {
     existing &&
     (existing as unknown as { banner?: unknown }).banner &&
     (existing as unknown as { offer?: unknown }).offer &&
-    (existing as unknown as { ageRange?: unknown }).ageRange
+    (existing as unknown as { ageRange?: unknown }).ageRange &&
+    (existing as unknown as { invoice?: unknown }).invoice
   ) {
     return existing;
   }
   const fresh = prismaClientSingleton();
-  if (process.env.NODE_ENV !== "production") {
-    (globalThis as unknown as { prismaGlobal?: PrismaClient }).prismaGlobal = fresh;
-  }
+  (globalThis as unknown as { prismaGlobal?: PrismaClient }).prismaGlobal = fresh;
   return fresh;
 };
 

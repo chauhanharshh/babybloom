@@ -32,27 +32,60 @@ export async function POST(req: NextRequest) {
       paymentMethod: paymentMethod || "COD",
     });
 
-    const order = await prisma.$transaction(async (tx) => {
-      // Find existing valid product IDs to satisfy foreign key constraint
-      const existingProducts = await tx.product.findMany({ select: { id: true } });
-      const validProductIds = new Set(existingProducts.map((p) => p.id));
-      const fallbackProductId = existingProducts[0]?.id || 1;
+async function createOrderResilient(
+  customerInfoJson: string,
+  total: number,
+  cart: { id: string; name: string; price: number; quantity: number; ageGroup?: string }[]
+) {
+  let lastError: unknown;
 
-      // 1. Create the order
-      const newOrder = await tx.order.create({
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      // 1. Find existing valid product IDs to satisfy foreign key constraint
+      const existingProducts = await prisma.product.findMany({
+        select: { id: true },
+        orderBy: { id: "asc" },
+      });
+
+      let fallbackProductId = existingProducts[0]?.id;
+
+      // If no products exist in the DB at all, create a fallback product so foreign key never fails
+      if (!fallbackProductId) {
+        const firstCartItem = cart[0];
+        const createdFallback = await prisma.product.create({
+          data: {
+            name: firstCartItem?.name || "Baby Bloom Outfit",
+            price: firstCartItem?.price || 499,
+            stock: 100,
+            category: "Girls",
+            ageGroup: firstCartItem?.ageGroup || "1-6 Yrs",
+            style: "Regular",
+          },
+        });
+        fallbackProductId = createdFallback.id;
+      }
+
+      const validProductIds = new Set(existingProducts.map((p) => p.id));
+      validProductIds.add(fallbackProductId);
+
+      // 2. Create the order + items in a single atomic Prisma query (avoids 2s interactive $transaction timeout on cold DB)
+      const newOrder = await prisma.order.create({
         data: {
           customerName: customerInfoJson,
           total,
           status: "pending",
           items: {
             create: cart.map((item) => {
-              const parsedId = parseInt(item.id);
-              const productId = validProductIds.has(parsedId) ? parsedId : fallbackProductId;
+              const parsedId = parseInt(String(item.id), 10);
+              const productId =
+                !Number.isNaN(parsedId) && validProductIds.has(parsedId)
+                  ? parsedId
+                  : fallbackProductId!;
               return {
                 productId,
                 name: item.name,
-                price: item.price,
-                quantity: item.quantity,
+                price: Number(item.price) || 0,
+                quantity: Number(item.quantity) || 1,
                 ageGroup: item.ageGroup || "1-6 Yrs",
               };
             }),
@@ -62,7 +95,35 @@ export async function POST(req: NextRequest) {
       });
 
       return newOrder;
-    });
+    } catch (err) {
+      lastError = err;
+      const errMsg = (err as Error)?.message || String(err);
+      console.warn(`[Order Create Attempt ${attempt}/3 Failed]:`, errMsg);
+
+      // If sequence is out of sync (P2002 on id), repair sequence before retrying
+      if (errMsg.includes("Unique constraint failed") && errMsg.includes("id")) {
+        try {
+          await prisma.$executeRawUnsafe(
+            `SELECT setval(pg_get_serial_sequence('"Order"', 'id'), COALESCE((SELECT MAX(id) FROM "Order"), 0) + 1, false);`
+          );
+          await prisma.$executeRawUnsafe(
+            `SELECT setval(pg_get_serial_sequence('"OrderItem"', 'id'), COALESCE((SELECT MAX(id) FROM "OrderItem"), 0) + 1, false);`
+          );
+        } catch {
+          // ignore
+        }
+      }
+
+      if (attempt < 3) {
+        await new Promise((r) => setTimeout(r, 400 * attempt));
+      }
+    }
+  }
+
+  throw lastError;
+}
+
+    const order = await createOrderResilient(customerInfoJson, total, cart);
 
     // Extract base URL from request origin/headers
     const origin = req.nextUrl.origin || req.headers.get("origin") || "http://localhost:3000";

@@ -187,19 +187,30 @@ export default function CheckoutPage() {
     setIsSubmitting(true);
     try {
       const orderItems = cart;
+      const payload = JSON.stringify({
+        cart: orderItems,
+        customerName: address.name,
+        customerEmail: address.email,
+        address: `${address.line1} ${address.line2} ${address.cityStateZip}`,
+        phone: address.phone,
+        paymentMethod,
+      });
 
-      const res = await fetch("/api/orders", {
+      let res = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          cart: orderItems,
-          customerName: address.name,
-          customerEmail: address.email,
-          address: `${address.line1} ${address.line2} ${address.cityStateZip}`,
-          phone: address.phone,
-          paymentMethod,
-        }),
+        body: payload,
       });
+
+      // Automatic retry once if cold start or transient DB wake-up occurred
+      if (!res.ok) {
+        await new Promise((r) => setTimeout(r, 600));
+        res = await fetch("/api/orders", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: payload,
+        });
+      }
 
       const data = await res.json();
       if (res.ok && data.success) {

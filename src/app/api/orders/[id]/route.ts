@@ -44,70 +44,68 @@ export async function PATCH(
 
     let shouldSendCustomerApprovalEmail = false;
 
-    const updatedOrder = await prisma.$transaction(async (tx) => {
-      // 1. Fetch current order with its items
-      const existingOrder = await tx.order.findUnique({
-        where: { id: orderId },
-        include: { items: true },
-      });
+    // 1. Fetch current order with its items
+    const existingOrder = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: { items: true },
+    });
 
-      if (!existingOrder) {
-        throw new Error("Order not found");
-      }
+    if (!existingOrder) {
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
 
-      // 2. If transitioning to "approved" (from pending or rejected): DECREMENT stock & mark for customer email
-      if (status === "approved" && existingOrder.status !== "approved") {
-        shouldSendCustomerApprovalEmail = true;
-        for (const item of existingOrder.items) {
-          if (item.productId) {
-            const product = await tx.product.findUnique({
+    // 2. If transitioning to "approved" (from pending or rejected): DECREMENT stock & mark for customer email
+    if (status === "approved" && existingOrder.status !== "approved") {
+      shouldSendCustomerApprovalEmail = true;
+      for (const item of existingOrder.items) {
+        if (item.productId) {
+          const product = await prisma.product.findUnique({
+            where: { id: item.productId },
+            select: { id: true, stock: true, name: true },
+          });
+
+          if (product) {
+            const newStock = Math.max(0, product.stock - item.quantity);
+            await prisma.product.update({
               where: { id: item.productId },
-              select: { id: true, stock: true, name: true },
+              data: { stock: newStock },
             });
-
-            if (product) {
-              const newStock = Math.max(0, product.stock - item.quantity);
-              await tx.product.update({
-                where: { id: item.productId },
-                data: { stock: newStock },
-              });
-              console.log(
-                `[Stock Decremented] Order #${orderId} Approved: "${product.name}" (ID: ${product.id}) stock updated from ${product.stock} to ${newStock} (-${item.quantity})`
-              );
-            }
+            console.log(
+              `[Stock Decremented] Order #${orderId} Approved: "${product.name}" (ID: ${product.id}) stock updated from ${product.stock} to ${newStock} (-${item.quantity})`
+            );
           }
         }
       }
+    }
 
-      // 3. If transitioning FROM "approved" to "rejected" (or pending): RESTORE stock
-      if (status !== "approved" && existingOrder.status === "approved") {
-        for (const item of existingOrder.items) {
-          if (item.productId) {
-            const product = await tx.product.findUnique({
+    // 3. If transitioning FROM "approved" to "rejected" (or pending): RESTORE stock
+    if (status !== "approved" && existingOrder.status === "approved") {
+      for (const item of existingOrder.items) {
+        if (item.productId) {
+          const product = await prisma.product.findUnique({
+            where: { id: item.productId },
+            select: { id: true, stock: true, name: true },
+          });
+
+          if (product) {
+            const restoredStock = product.stock + item.quantity;
+            await prisma.product.update({
               where: { id: item.productId },
-              select: { id: true, stock: true, name: true },
+              data: { stock: restoredStock },
             });
-
-            if (product) {
-              const restoredStock = product.stock + item.quantity;
-              await tx.product.update({
-                where: { id: item.productId },
-                data: { stock: restoredStock },
-              });
-              console.log(
-                `[Stock Restored] Order #${orderId} marked as ${status}: "${product.name}" (ID: ${product.id}) stock restored from ${product.stock} to ${restoredStock} (+${item.quantity})`
-              );
-            }
+            console.log(
+              `[Stock Restored] Order #${orderId} marked as ${status}: "${product.name}" (ID: ${product.id}) stock restored from ${product.stock} to ${restoredStock} (+${item.quantity})`
+            );
           }
         }
       }
+    }
 
-      // 4. Update the order status
-      return await tx.order.update({
-        where: { id: orderId },
-        data: { status },
-        include: { items: true },
-      });
+    // 4. Update the order status
+    const updatedOrder = await prisma.order.update({
+      where: { id: orderId },
+      data: { status },
+      include: { items: true },
     });
 
     // 5. Generate GST Invoice & Send Order Approved email to the customer if order is approved
@@ -195,10 +193,8 @@ export async function DELETE(
     const { id } = await params;
     const orderId = parseInt(id);
 
-    await prisma.$transaction(async (tx) => {
-      await tx.orderItem.deleteMany({ where: { orderId } });
-      await tx.order.delete({ where: { id: orderId } });
-    });
+    await prisma.orderItem.deleteMany({ where: { orderId } });
+    await prisma.order.delete({ where: { id: orderId } });
 
     return NextResponse.json({ success: true, deletedId: orderId });
   } catch (error) {
