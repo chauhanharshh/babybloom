@@ -53,7 +53,8 @@ export default function CategoryScrollRow({ categories }: CategoryScrollRowProps
                   src={cat.image}
                   alt={cat.title}
                   fill
-                  loading="lazy"
+                  priority={idx < 6}
+                  loading="eager"
                   className="object-contain"
                   fallbackText={cat.title}
                 />

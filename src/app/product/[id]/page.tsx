@@ -5,7 +5,9 @@ import prisma from "@/lib/prisma";
 import ProductDetailsClient from "./ProductDetailsClient";
 import { getActiveOffers, calculateProductOffer } from "@/lib/offers";
 
-export const revalidate = 0;
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://www.babyybloom.com";
+
+export const revalidate = 60;
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -35,15 +37,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     };
   }
 
-  const activeOffers = await getActiveOffers();
-  const offer = calculateProductOffer(
-    product.id,
-    product.category,
-    product.price,
-    activeOffers,
-    product.categories
-  );
-
   const ageLabel =
     product.ageGroups && product.ageGroups.length > 0
       ? product.ageGroups.join(", ")
@@ -52,7 +45,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const title = `Buy ${product.name} Online (${product.category})`;
   const rawDesc =
     product.description?.trim() ||
-    `Buy ${product.name} at ₹${offer.price} online at BabyBloom. Premium ${product.category} kids wear for ${ageLabel}, crafted from soft, breathable cotton fabric.`;
+    `Buy ${product.name} at ₹${product.price} online at BabyBloom. Premium ${product.category} kids wear for ${ageLabel}, crafted from soft, breathable cotton fabric.`;
   const description = rawDesc.length > 160 ? `${rawDesc.slice(0, 157)}...` : rawDesc;
 
   return {
@@ -78,14 +71,16 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function ProductDetailPage({ params }: PageProps) {
   const { id } = await params;
-  const product = await getProductById(id);
+  const [product, activeOffers] = await Promise.all([
+    getProductById(id),
+    getActiveOffers(),
+  ]);
 
   // If not found in DB, return 404
   if (!product) {
     notFound();
   }
 
-  const activeOffers = await getActiveOffers();
   const offer = calculateProductOffer(
     product.id,
     product.category,
@@ -98,6 +93,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
     id: product.id.toString(),
     name: product.name,
     price: offer.price,
+    stock: product.stock,
     mrp: offer.mrp,
     discountPercent: offer.discountPercent,
     imageUrl: product.imageUrl || "",
@@ -108,26 +104,68 @@ export default async function ProductDetailPage({ params }: PageProps) {
     description: product.description,
   };
 
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Product",
-    name: product.name,
-    image: product.imageUrl ? [product.imageUrl] : undefined,
-    description:
-      product.description ||
-      `Crafted with love from hypoallergenic breathable organic fabrics for ${product.ageGroup || "kids"}.`,
-    brand: {
-      "@type": "Brand",
-      name: "BabyBloom",
+  const categoryPath =
+    ["girls", "boys", "newborn"].includes((product.category || "").toLowerCase())
+      ? `/${product.category.toLowerCase()}`
+      : `/category/${encodeURIComponent((product.category || "shop").toLowerCase())}`;
+
+  const jsonLd = [
+    {
+      "@context": "https://schema.org",
+      "@type": "Product",
+      name: product.name,
+      sku: `BB-${product.id}`,
+      url: `${SITE_URL}/product/${product.id}`,
+      image: product.imageUrl ? [product.imageUrl] : undefined,
+      description:
+        product.description ||
+        `Crafted with love from hypoallergenic breathable organic fabrics for ${product.ageGroup || "kids"}.`,
+      brand: {
+        "@type": "Brand",
+        name: "BabyBloom",
+      },
+      category: product.category,
+      offers: {
+        "@type": "Offer",
+        url: `${SITE_URL}/product/${product.id}`,
+        priceCurrency: "INR",
+        price: offer.price,
+        itemCondition: "https://schema.org/NewCondition",
+        availability:
+          product.stock > 0
+            ? "https://schema.org/InStock"
+            : "https://schema.org/OutOfStock",
+        seller: {
+          "@type": "Organization",
+          name: "BabyBloom",
+        },
+      },
     },
-    category: product.category,
-    offers: {
-      "@type": "Offer",
-      priceCurrency: "INR",
-      price: offer.price,
-      availability: product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        {
+          "@type": "ListItem",
+          position: 1,
+          name: "Home",
+          item: SITE_URL,
+        },
+        {
+          "@type": "ListItem",
+          position: 2,
+          name: product.category || "Shop",
+          item: `${SITE_URL}${categoryPath}`,
+        },
+        {
+          "@type": "ListItem",
+          position: 3,
+          name: product.name,
+          item: `${SITE_URL}/product/${product.id}`,
+        },
+      ],
     },
-  };
+  ];
 
   return (
     <>

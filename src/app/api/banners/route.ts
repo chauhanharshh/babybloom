@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import prisma from "@/lib/prisma";
+import { requireAdminAuth } from "@/lib/admin-auth";
 
 export async function GET(request: Request) {
   try {
@@ -20,6 +22,9 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const unauth = await requireAdminAuth();
+    if (unauth) return unauth;
+
     const body = await request.json();
     const { imageUrl, title, alt, linkUrl, order, isActive } = body;
 
@@ -38,6 +43,7 @@ export async function POST(request: Request) {
       },
     });
 
+    revalidatePath("/", "layout");
     return NextResponse.json(banner, { status: 201 });
   } catch (error) {
     console.error("Error creating banner:", error);

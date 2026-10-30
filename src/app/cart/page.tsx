@@ -181,27 +181,50 @@ export default function CartPage() {
                           </div>
 
                           {/* Stepper */}
-                          <div className="flex items-center border border-gray-200 rounded-lg bg-gray-50 p-0.5">
-                            <button
-                              type="button"
-                              onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                              className="w-6 h-6 rounded bg-white flex items-center justify-center text-gray-700 hover:text-[#ff2b75] shadow-2xs"
-                              aria-label="Decrease quantity"
-                            >
-                              <Minus size={11} />
-                            </button>
-                            <span className="w-6 text-center text-xs font-bold text-gray-900">
-                              {item.quantity}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                              className="w-6 h-6 rounded bg-white flex items-center justify-center text-gray-700 hover:text-[#ff2b75] shadow-2xs"
-                              aria-label="Increase quantity"
-                            >
-                              <Plus size={11} />
-                            </button>
-                          </div>
+                          {(() => {
+                            const isAtMax =
+                              typeof item.stock === "number" && item.quantity >= item.stock;
+                            return (
+                              <div className="flex flex-col items-end gap-0.5">
+                                <div className="flex items-center border border-gray-200 rounded-lg bg-gray-50 p-0.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                                    className="w-6 h-6 rounded bg-white flex items-center justify-center text-gray-700 hover:text-[#ff2b75] shadow-2xs cursor-pointer"
+                                    aria-label="Decrease quantity"
+                                  >
+                                    <Minus size={11} />
+                                  </button>
+                                  <span className="w-6 text-center text-xs font-bold text-gray-900">
+                                    {item.quantity}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    disabled={isAtMax}
+                                    onClick={() => {
+                                      if (!isAtMax) {
+                                        updateQuantity(item.id, item.quantity + 1);
+                                      }
+                                    }}
+                                    title={isAtMax ? `Max available stock (${item.stock})` : "Increase quantity"}
+                                    className={`w-6 h-6 rounded bg-white flex items-center justify-center shadow-2xs ${
+                                      isAtMax
+                                        ? "text-gray-300 cursor-not-allowed"
+                                        : "text-gray-700 hover:text-[#ff2b75] cursor-pointer"
+                                    }`}
+                                    aria-label="Increase quantity"
+                                  >
+                                    <Plus size={11} />
+                                  </button>
+                                </div>
+                                {isAtMax && (
+                                  <span className="text-[10px] font-bold text-amber-600">
+                                    Max {item.stock} available
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </div>
                       </div>
 

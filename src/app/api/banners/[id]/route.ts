@@ -1,11 +1,16 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import prisma from "@/lib/prisma";
+import { requireAdminAuth } from "@/lib/admin-auth";
 
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const unauth = await requireAdminAuth();
+    if (unauth) return unauth;
+
     const { id } = await params;
     const bannerId = parseInt(id);
     if (isNaN(bannerId)) {
@@ -28,6 +33,7 @@ export async function PUT(
       data,
     });
 
+    revalidatePath("/", "layout");
     return NextResponse.json(updated);
   } catch (error) {
     console.error("Error updating banner:", error);
@@ -40,6 +46,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const unauth = await requireAdminAuth();
+    if (unauth) return unauth;
+
     const { id } = await params;
     const bannerId = parseInt(id);
     if (isNaN(bannerId)) {
@@ -50,6 +59,7 @@ export async function DELETE(
       where: { id: bannerId },
     });
 
+    revalidatePath("/", "layout");
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error deleting banner:", error);

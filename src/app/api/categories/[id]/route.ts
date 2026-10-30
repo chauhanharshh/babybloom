@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { requireAdminAuth } from "@/lib/admin-auth";
 
 function slugify(text: string): string {
   return text
@@ -17,6 +18,9 @@ interface RouteParams {
 // PUT /api/categories/[id] - Update category
 export async function PUT(req: Request, { params }: RouteParams) {
   try {
+    const unauth = await requireAdminAuth();
+    if (unauth) return unauth;
+
     const { id } = await params;
     const categoryId = parseInt(id);
 
@@ -77,6 +81,9 @@ export async function PUT(req: Request, { params }: RouteParams) {
 // DELETE /api/categories/[id] - Delete category
 export async function DELETE(_req: Request, { params }: RouteParams) {
   try {
+    const unauth = await requireAdminAuth();
+    if (unauth) return unauth;
+
     const { id } = await params;
     const categoryId = parseInt(id);
 

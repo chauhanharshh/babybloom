@@ -20,10 +20,14 @@ import {
   Crown
 } from "lucide-react";
 
-export const revalidate = 0; // Fresh inventory data
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://www.babyybloom.com";
+
+export const revalidate = 60; // Fast ISR cache (instantly revalidated on admin updates)
 
 export const metadata: Metadata = {
-  title: "BabyBloom | Premium Baby & Kids Wear Online in India (0–9 Years)",
+  title: {
+    absolute: "BabyBloom | Premium Baby & Kids Wear Online in India (0–9 Years)",
+  },
   description:
     "Shop adorable, comfortable & breathable baby and kids wear online at BabyBloom. Explore newborn rompers, girls frocks, boys sets & party wear with free shipping above ₹999.",
   alternates: {
@@ -92,6 +96,7 @@ export default async function Home() {
       id: p.id.toString(),
       name: p.name,
       price: offer.price,
+      stock: p.stock,
       imageUrl: p.imageUrl || "",
       ageGroup: p.ageGroup,
       ageGroups: p.ageGroups,
@@ -124,8 +129,50 @@ export default async function Home() {
     image: c.imageUrl || "",
   }));
 
+  const homeJsonLd = [
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      name: "BabyBloom",
+      url: SITE_URL,
+      logo: `${SITE_URL}/icons/apple-touch-icon.png`,
+      email: "babybloom.bb2024@gmail.com",
+      telephone: "+91-9520042719",
+      address: {
+        "@type": "PostalAddress",
+        streetAddress: "Khanna Nagar, House no. 41, Opposite Kaushik Academy",
+        addressLocality: "Haridwar",
+        addressRegion: "Uttarakhand",
+        postalCode: "249401",
+        addressCountry: "IN",
+      },
+      contactPoint: {
+        "@type": "ContactPoint",
+        telephone: "+91-9520042719",
+        contactType: "customer service",
+        areaServed: "IN",
+        availableLanguage: ["en", "hi"],
+      },
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      name: "BabyBloom",
+      url: SITE_URL,
+      potentialAction: {
+        "@type": "SearchAction",
+        target: `${SITE_URL}/search?q={search_term_string}`,
+        "query-input": "required name=search_term_string",
+      },
+    },
+  ];
+
   return (
     <main className="min-h-screen bg-white flex flex-col pb-16 md:pb-0">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(homeJsonLd) }}
+      />
       <Navbar />
       <CartDrawer />
 

@@ -3,7 +3,7 @@ import prisma from "@/lib/prisma";
 import CategoryListingView from "@/components/CategoryListingView";
 import { getActiveOffers, calculateProductOffer, type ActiveOffer } from "@/lib/offers";
 
-export const revalidate = 0;
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "Girls Wear Online (1–9 Years) – Frocks, Dresses, Co-ord Sets & Party Wear",
@@ -64,6 +64,7 @@ export default async function GirlsPage() {
       id: p.id.toString(),
       name: p.name,
       price: offer.price,
+      stock: p.stock,
       imageUrl: p.imageUrl || "",
       ageGroup: p.ageGroup,
       ageGroups: p.ageGroups,

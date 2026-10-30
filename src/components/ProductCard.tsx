@@ -15,6 +15,15 @@ export default function ProductCard({ product }: ProductCardProps) {
 
   const cartItem = cart.find((item) => item.id === product.id);
   const isLiked = isInWishlist(product.id);
+  const maxStock =
+    typeof product.stock === "number"
+      ? product.stock
+      : typeof cartItem?.stock === "number"
+      ? cartItem.stock
+      : undefined;
+  const isOutOfStock = typeof maxStock === "number" && maxStock <= 0;
+  const isAtMaxStock =
+    typeof maxStock === "number" && cartItem ? cartItem.quantity >= maxStock : false;
 
   // If MRP not provided, generate a sensible strikethrough price (+40-50%)
   const mrp = product.mrp || Math.round(product.price * 1.5);
@@ -28,7 +37,7 @@ export default function ProductCard({ product }: ProductCardProps) {
             src={product.imageUrl || ""}
             alt={product.name}
             fill
-            loading="lazy"
+            loading="eager"
             className="object-cover object-center transition-transform duration-500 group-hover:scale-105"
             fallbackText={product.name}
           />
@@ -91,35 +100,58 @@ export default function ProductCard({ product }: ProductCardProps) {
       </Link>
 
       {/* Cart Action Button / Quantity Controls */}
-      {cartItem ? (
-        <div className="w-full flex items-center justify-between bg-pink-50 border border-[#ff2b75]/30 rounded-xl p-1 transition-all">
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              updateQuantity(product.id, cartItem.quantity - 1);
-            }}
-            className="w-7 h-7 flex items-center justify-center bg-white text-[#ff2b75] rounded-lg shadow-xs hover:bg-[#ff2b75] hover:text-white transition-colors"
-          >
-            <Minus size={13} />
-          </button>
+      {isOutOfStock ? (
+        <button
+          type="button"
+          disabled
+          className="w-full bg-gray-100 text-gray-400 border border-gray-200 py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center cursor-not-allowed select-none"
+        >
+          <span>Out of Stock</span>
+        </button>
+      ) : cartItem ? (
+        <div className="space-y-1">
+          <div className="w-full flex items-center justify-between bg-pink-50 border border-[#ff2b75]/30 rounded-xl p-1 transition-all">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                updateQuantity(product.id, cartItem.quantity - 1);
+              }}
+              className="w-7 h-7 flex items-center justify-center bg-white text-[#ff2b75] rounded-lg shadow-xs hover:bg-[#ff2b75] hover:text-white transition-colors cursor-pointer"
+            >
+              <Minus size={13} />
+            </button>
 
-          <span className="font-extrabold text-xs text-[#ff2b75] px-2">
-            {cartItem.quantity}
-          </span>
+            <span className="font-extrabold text-xs text-[#ff2b75] px-2">
+              {cartItem.quantity}
+            </span>
 
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              updateQuantity(product.id, cartItem.quantity + 1);
-            }}
-            className="w-7 h-7 flex items-center justify-center bg-[#ff2b75] text-white rounded-lg shadow-xs hover:bg-[#e01d62] transition-colors"
-          >
-            <Plus size={13} />
-          </button>
+            <button
+              type="button"
+              disabled={isAtMaxStock}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (!isAtMaxStock) {
+                  updateQuantity(product.id, cartItem.quantity + 1);
+                }
+              }}
+              title={isAtMaxStock ? `Maximum available stock (${maxStock}) reached` : "Increase quantity"}
+              className={`w-7 h-7 flex items-center justify-center rounded-lg shadow-xs transition-colors ${
+                isAtMaxStock
+                  ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                  : "bg-[#ff2b75] text-white hover:bg-[#e01d62] cursor-pointer"
+              }`}
+            >
+              <Plus size={13} />
+            </button>
+          </div>
+          {isAtMaxStock && (
+            <p className="text-[10px] text-center font-bold text-amber-600">
+              Max {maxStock} available
+            </p>
+          )}
         </div>
       ) : (
         <button

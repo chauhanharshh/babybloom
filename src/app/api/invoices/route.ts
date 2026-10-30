@@ -6,11 +6,15 @@ import {
 } from "@/lib/invoices";
 import { sendOrderApprovedEmailToCustomer } from "@/lib/email";
 import { getStoreProfile } from "@/lib/profile";
+import { requireAdminAuth } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   try {
+    const unauth = await requireAdminAuth();
+    if (unauth) return unauth;
+
     const { searchParams } = new URL(req.url);
     const orderIdParam = searchParams.get("orderId");
     const format = searchParams.get("format");
@@ -44,6 +48,9 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const unauth = await requireAdminAuth();
+    if (unauth) return unauth;
+
     const body = await req.json();
     const { orderId, action } = body as { orderId: number; action?: "generate" | "resend_email" };
 

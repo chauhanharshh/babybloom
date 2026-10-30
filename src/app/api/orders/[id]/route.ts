@@ -1,16 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import prisma from "@/lib/prisma";
 import { sendOrderApprovedEmailToCustomer } from "@/lib/email";
 import { getStoreProfile } from "@/lib/profile";
 import { createOrGetInvoiceForOrder } from "@/lib/invoices";
+import { requireAdminAuth } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(
-  req: NextRequest,
+  _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const unauth = await requireAdminAuth();
+    if (unauth) return unauth;
+
     const { id } = await params;
     const order = await prisma.order.findUnique({
       where: { id: parseInt(id) },
@@ -34,6 +39,9 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const unauth = await requireAdminAuth();
+    if (unauth) return unauth;
+
     const { id } = await params;
     const orderId = parseInt(id);
     const { status } = await req.json();
@@ -54,9 +62,14 @@ export async function PATCH(
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    // 2. If transitioning to "approved" (from pending or rejected): DECREMENT stock & mark for customer email
+    // 2. Mark for customer approval email if transitioning to "approved"
     if (status === "approved" && existingOrder.status !== "approved") {
       shouldSendCustomerApprovalEmail = true;
+    }
+
+    // 3. Since stock is already atomically reserved when the order is placed ("pending"):
+    //    - If transitioning FROM "rejected" back to "pending" or "approved": DECREMENT stock again
+    if (existingOrder.status === "rejected" && status !== "rejected") {
       for (const item of existingOrder.items) {
         if (item.productId) {
           const product = await prisma.product.findUnique({
@@ -71,15 +84,15 @@ export async function PATCH(
               data: { stock: newStock },
             });
             console.log(
-              `[Stock Decremented] Order #${orderId} Approved: "${product.name}" (ID: ${product.id}) stock updated from ${product.stock} to ${newStock} (-${item.quantity})`
+              `[Stock Decremented] Order #${orderId} (${existingOrder.status} -> ${status}): "${product.name}" (ID: ${product.id}) stock updated from ${product.stock} to ${newStock} (-${item.quantity})`
             );
           }
         }
       }
     }
 
-    // 3. If transitioning FROM "approved" to "rejected" (or pending): RESTORE stock
-    if (status !== "approved" && existingOrder.status === "approved") {
+    // 4. If transitioning FROM "pending" or "approved" to "rejected": RESTORE reserved stock
+    if (status === "rejected" && existingOrder.status !== "rejected") {
       for (const item of existingOrder.items) {
         if (item.productId) {
           const product = await prisma.product.findUnique({
@@ -94,19 +107,21 @@ export async function PATCH(
               data: { stock: restoredStock },
             });
             console.log(
-              `[Stock Restored] Order #${orderId} marked as ${status}: "${product.name}" (ID: ${product.id}) stock restored from ${product.stock} to ${restoredStock} (+${item.quantity})`
+              `[Stock Restored] Order #${orderId} Rejected: "${product.name}" (ID: ${product.id}) stock restored from ${product.stock} to ${restoredStock} (+${item.quantity})`
             );
           }
         }
       }
     }
 
-    // 4. Update the order status
+    // 5. Update the order status
     const updatedOrder = await prisma.order.update({
       where: { id: orderId },
       data: { status },
       include: { items: true },
     });
+
+    revalidatePath("/", "layout");
 
     // 5. Generate GST Invoice & Send Order Approved email to the customer if order is approved
     let customerEmailSent = false;
@@ -186,15 +201,39 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  req: NextRequest,
+  _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const unauth = await requireAdminAuth();
+    if (unauth) return unauth;
+
     const { id } = await params;
     const orderId = parseInt(id);
 
+    const existingOrder = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: { items: true },
+    });
+
+    // If a pending order is deleted before fulfillment, restore its reserved stock
+    if (existingOrder && existingOrder.status === "pending") {
+      for (const item of existingOrder.items) {
+        if (item.productId) {
+          await prisma.product
+            .update({
+              where: { id: item.productId },
+              data: { stock: { increment: item.quantity } },
+            })
+            .catch(() => {});
+        }
+      }
+    }
+
     await prisma.orderItem.deleteMany({ where: { orderId } });
     await prisma.order.delete({ where: { id: orderId } });
+
+    revalidatePath("/", "layout");
 
     return NextResponse.json({ success: true, deletedId: orderId });
   } catch (error) {

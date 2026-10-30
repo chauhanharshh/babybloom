@@ -105,21 +105,6 @@ export default function AdminOrders() {
     }
   };
 
-  const clearAllOrders = async () => {
-    if (!confirm("Are you sure you want to permanently delete ALL orders from the database? This cannot be undone.")) return;
-    setLoading(true);
-    try {
-      const res = await fetch("/api/orders", { method: "DELETE" });
-      if (res.ok) {
-        setOrders([]);
-      }
-    } catch (e) {
-      console.error("Failed to clear orders:", e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "approved":
@@ -151,16 +136,6 @@ export default function AdminOrders() {
           <p className="text-gray-500 mt-1 text-sm sm:text-base">Manage customer orders, view delivery details, and update statuses.</p>
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          {orders.length > 0 && (
-            <button
-              onClick={clearAllOrders}
-              className="flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-200"
-              title="Delete all orders"
-            >
-              <Trash2 className="w-4 h-4" />
-              Clear All Orders
-            </button>
-          )}
           <button
             onClick={fetchOrders}
             className="w-full sm:w-auto justify-center flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors"

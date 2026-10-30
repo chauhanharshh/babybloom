@@ -4,6 +4,7 @@ import {
   dbFindAgeRangeByName, 
   dbCreateAgeRange 
 } from "@/lib/ageRanges";
+import { requireAdminAuth } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +25,9 @@ export async function GET() {
 // POST /api/age-ranges - Create a new age range
 export async function POST(req: Request) {
   try {
+    const unauth = await requireAdminAuth();
+    if (unauth) return unauth;
+
     const body = await req.json();
     const { name } = body;
 

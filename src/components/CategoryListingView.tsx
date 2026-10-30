@@ -31,13 +31,16 @@ export default function CategoryListingView({
 
   useEffect(() => {
     if (typeof window !== "undefined") {
+      if (title) {
+        document.title = `${title} | BabyBloom`;
+      }
       const params = new URLSearchParams(window.location.search);
       const sub = params.get("sub");
       if (sub) {
         setActiveSubcategory(sub);
       }
     }
-  }, []);
+  }, [title]);
 
   // Filter & Sort
   const filteredProducts = useMemo(() => {

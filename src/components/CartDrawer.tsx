@@ -120,21 +120,48 @@ export default function CartDrawer() {
 
                   <div className="flex justify-between items-center mt-2">
                     <p className="font-extrabold text-[#ff2b75] text-sm">₹{item.price * item.quantity}</p>
-                    <div className="flex items-center gap-2 bg-white rounded-full px-2 py-0.5 shadow-xs border border-pink-200">
-                      <button
-                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                        className="text-gray-600 hover:text-[#ff2b75]"
-                      >
-                        <Minus size={12} />
-                      </button>
-                      <span className="text-xs font-bold w-4 text-center text-gray-900">{item.quantity}</span>
-                      <button
-                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                        className="text-gray-600 hover:text-[#ff2b75]"
-                      >
-                        <Plus size={12} />
-                      </button>
-                    </div>
+                    {(() => {
+                      const isAtMax =
+                        typeof item.stock === "number" && item.quantity >= item.stock;
+                      return (
+                        <div className="flex flex-col items-end gap-0.5">
+                          <div className="flex items-center gap-2 bg-white rounded-full px-2 py-0.5 shadow-xs border border-pink-200">
+                            <button
+                              type="button"
+                              onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                              className="text-gray-600 hover:text-[#ff2b75] cursor-pointer"
+                            >
+                              <Minus size={12} />
+                            </button>
+                            <span className="text-xs font-bold w-4 text-center text-gray-900">
+                              {item.quantity}
+                            </span>
+                            <button
+                              type="button"
+                              disabled={isAtMax}
+                              onClick={() => {
+                                if (!isAtMax) {
+                                  updateQuantity(item.id, item.quantity + 1);
+                                }
+                              }}
+                              title={isAtMax ? `Max available stock (${item.stock})` : "Increase quantity"}
+                              className={
+                                isAtMax
+                                  ? "text-gray-300 cursor-not-allowed"
+                                  : "text-gray-600 hover:text-[#ff2b75] cursor-pointer"
+                              }
+                            >
+                              <Plus size={12} />
+                            </button>
+                          </div>
+                          {isAtMax && (
+                            <span className="text-[9px] font-bold text-amber-600">
+                              Max {item.stock} left
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>

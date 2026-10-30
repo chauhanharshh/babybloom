@@ -44,6 +44,7 @@ interface NavProduct {
   id: number;
   name: string;
   price: number;
+  stock?: number;
   imageUrl: string | null;
   category: string;
   style?: string | null;
@@ -107,6 +108,14 @@ const POPULAR_AGE_FILTERS = [
   "4 - 6 Years",
 ];
 
+function getCategoryHref(slug: string): string {
+  const s = (slug || "").toLowerCase().trim();
+  if (s === "girls" || s === "boys" || s === "newborn") {
+    return `/${s}`;
+  }
+  return `/category/${s}`;
+}
+
 function getCategoryIcon(name: string) {
   const n = name.toLowerCase();
   if (n.includes("girl")) return Heart;
@@ -132,14 +141,20 @@ function getSubcategoryIcon(name: string) {
   return Tag;
 }
 
+let cachedNavCategories: NavCategory[] | null = null;
+let cachedNavProducts: NavProduct[] | null = null;
+let cachedNavOfferText: string | null = null;
+let lastNavFetchTime = 0;
+const NAV_CACHE_TTL_MS = 60_000;
+
 export default function Navbar() {
   const pathname = usePathname();
   const { totalItems, addToCart, setIsCartOpen } = useCart();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [mobileExpandedCat, setMobileExpandedCat] = useState<number | null>(null);
-  const [activeOfferText, setActiveOfferText] = useState<string | null>(null);
-  const [categories, setCategories] = useState<NavCategory[]>(DEFAULT_CATEGORIES);
-  const [products, setProducts] = useState<NavProduct[]>([]);
+  const [activeOfferText, setActiveOfferText] = useState<string | null>(cachedNavOfferText);
+  const [categories, setCategories] = useState<NavCategory[]>(cachedNavCategories || DEFAULT_CATEGORIES);
+  const [products, setProducts] = useState<NavProduct[]>(cachedNavProducts || []);
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -174,22 +189,33 @@ export default function Navbar() {
     setActiveMenu(null);
   }
 
-  const fetchCategories = useCallback(() => {
-    fetch(`/api/categories?t=${Date.now()}`, { cache: "no-store" })
+  const fetchCategories = useCallback((force = false) => {
+    if (!force && cachedNavCategories && Date.now() - lastNavFetchTime < NAV_CACHE_TTL_MS) {
+      setCategories(cachedNavCategories);
+      return;
+    }
+    fetch("/api/categories")
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data) && data.length > 0) {
+          cachedNavCategories = data;
+          lastNavFetchTime = Date.now();
           setCategories(data);
         }
       })
       .catch(() => {});
   }, []);
 
-  const fetchProducts = useCallback(() => {
-    fetch(`/api/products?t=${Date.now()}`, { cache: "no-store" })
+  const fetchProducts = useCallback((force = false) => {
+    if (!force && cachedNavProducts && Date.now() - lastNavFetchTime < NAV_CACHE_TTL_MS) {
+      setProducts(cachedNavProducts);
+      return;
+    }
+    fetch("/api/products")
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) {
+          cachedNavProducts = data;
           setProducts(data);
         }
       })
@@ -197,33 +223,34 @@ export default function Navbar() {
   }, []);
 
   useEffect(() => {
-    // 1. Fetch active promo offers for the top banner
-    fetch("/api/offers?active=true")
-      .then((res) => res.json())
-      .then((offers) => {
-        if (Array.isArray(offers) && offers.length > 0) {
-          const promo =
-            offers.find((o) => o.bannerText)?.bannerText ||
-            `🎉 ${offers[0].title} - Flat ${offers[0].discountPercent}% OFF!`;
-          setActiveOfferText(promo);
-        }
-      })
-      .catch(() => {});
+    const isFresh = Date.now() - lastNavFetchTime < NAV_CACHE_TTL_MS;
 
-    // 2. Fetch data
+    if (!isFresh || cachedNavOfferText === null) {
+      fetch("/api/offers?active=true")
+        .then((res) => res.json())
+        .then((offers) => {
+          if (Array.isArray(offers) && offers.length > 0) {
+            const promo =
+              offers.find((o) => o.bannerText)?.bannerText ||
+              `🎉 ${offers[0].title} - Flat ${offers[0].discountPercent}% OFF!`;
+            cachedNavOfferText = promo;
+            setActiveOfferText(promo);
+          }
+        })
+        .catch(() => {});
+    }
+
     fetchCategories();
     fetchProducts();
 
-    // Auto-refresh when user tabs back or focuses
-    window.addEventListener("focus", fetchCategories);
-    window.addEventListener("storage", fetchCategories);
-    window.addEventListener("babybloom:categories-updated", fetchCategories);
+    const handleForceRefresh = () => fetchCategories(true);
+    window.addEventListener("storage", handleForceRefresh);
+    window.addEventListener("babybloom:categories-updated", handleForceRefresh);
     return () => {
-      window.removeEventListener("focus", fetchCategories);
-      window.removeEventListener("storage", fetchCategories);
-      window.removeEventListener("babybloom:categories-updated", fetchCategories);
+      window.removeEventListener("storage", handleForceRefresh);
+      window.removeEventListener("babybloom:categories-updated", handleForceRefresh);
     };
-  }, [pathname, fetchCategories, fetchProducts]);
+  }, [fetchCategories, fetchProducts]);
 
   // Quick Add to Cart from trending cards
   const handleQuickAddToCart = (e: React.MouseEvent, p: NavProduct) => {
@@ -233,6 +260,7 @@ export default function Navbar() {
       id: p.id.toString(),
       name: p.name,
       price: p.price,
+      stock: p.stock,
       imageUrl: p.imageUrl || "/images/categories/coord-sets.jpg",
       ageGroup: p.ageGroup || "1-2 Yrs",
       category: p.category,
@@ -437,7 +465,7 @@ export default function Navbar() {
                                   return (
                                     <Link
                                       key={c.id}
-                                      href={`/category/${c.slug}`}
+                                      href={getCategoryHref(c.slug)}
                                       onClick={() => setActiveMenu(null)}
                                       className="flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-semibold text-gray-700 hover:text-[#ff2b75] hover:bg-pink-50/70 transition-all group/item"
                                     >
@@ -597,7 +625,7 @@ export default function Navbar() {
                   onMouseLeave={handleMenuLeave}
                 >
                   <Link 
-                    href={`/category/${cat.slug}`} 
+                    href={getCategoryHref(cat.slug)} 
                     className={`nav-link-trigger h-full px-2 xl:px-3 py-2 text-xs xl:text-sm font-semibold transition-all flex items-center gap-1 whitespace-nowrap border-b-2 cursor-pointer capitalize ${
                       isCatOpen 
                         ? "border-[#ff2b75] text-[#ff2b75] font-bold" 
@@ -635,7 +663,7 @@ export default function Navbar() {
                                   {displayName}
                                 </h3>
                                 <Link
-                                  href={`/category/${cat.slug}`}
+                                  href={getCategoryHref(cat.slug)}
                                   onClick={() => setActiveMenu(null)}
                                   className="text-[11px] font-bold text-gray-400 hover:text-[#ff2b75] transition-colors shrink-0"
                                 >
@@ -650,7 +678,7 @@ export default function Navbar() {
                                     return (
                                       <Link
                                         key={sub.id}
-                                        href={`/category/${cat.slug}?sub=${encodeURIComponent(sub.name)}`}
+                                        href={`${getCategoryHref(cat.slug)}?sub=${encodeURIComponent(sub.name)}`}
                                         onClick={() => setActiveMenu(null)}
                                         className="flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-semibold text-gray-700 hover:text-[#ff2b75] hover:bg-pink-50/70 transition-all group/item capitalize"
                                       >
@@ -678,7 +706,7 @@ export default function Navbar() {
                                 Featured in {displayName}
                               </span>
                               <Link
-                                href={`/category/${cat.slug}`}
+                                href={getCategoryHref(cat.slug)}
                                 onClick={() => setActiveMenu(null)}
                                 className="text-xs font-bold text-[#ff2b75] hover:text-[#e01d62] flex items-center gap-1 group/link"
                               >
@@ -719,7 +747,7 @@ export default function Navbar() {
                                 <p className="text-xs font-bold text-gray-800">Explore {displayName}</p>
                                 <p className="text-[11px] text-gray-500 mt-0.5 mb-2.5">Discover the newest collection</p>
                                 <Link
-                                  href={`/category/${cat.slug}`}
+                                  href={getCategoryHref(cat.slug)}
                                   onClick={() => setActiveMenu(null)}
                                   className="bg-[#ff2b75] text-white px-3.5 py-1.5 rounded-full text-xs font-bold hover:bg-[#e01d62] transition-colors"
                                 >
@@ -779,7 +807,7 @@ export default function Navbar() {
                       {overflowCategories.map((c) => (
                         <Link
                           key={c.id}
-                          href={`/category/${c.slug}`}
+                          href={getCategoryHref(c.slug)}
                           className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-gray-700 hover:text-[#ff2b75] hover:bg-pink-50/70 transition-all group/item capitalize"
                         >
                           <span>{c.name.toLowerCase().endsWith("wear") ? c.name : `${c.name} Wear`}</span>
@@ -899,7 +927,7 @@ export default function Navbar() {
                 <div key={c.id} className="space-y-0.5">
                   <div className="flex items-center justify-between hover:bg-pink-50/60 rounded-xl transition-colors">
                     <Link
-                      href={`/category/${c.slug}`}
+                      href={getCategoryHref(c.slug)}
                       onClick={() => setIsMobileMenuOpen(false)}
                       className="flex-1 text-gray-800 hover:text-[#ff2b75] px-4 py-2 text-sm font-semibold capitalize"
                     >
@@ -929,7 +957,7 @@ export default function Navbar() {
                   {hasSubs && isExpanded && (
                     <div className="pl-6 pr-2 py-1 space-y-1 border-l-2 border-pink-200 ml-4 mb-2 animate-in fade-in duration-150">
                       <Link
-                        href={`/category/${c.slug}`}
+                        href={getCategoryHref(c.slug)}
                         onClick={() => setIsMobileMenuOpen(false)}
                         className="block text-xs font-bold text-[#ff2b75] py-1.5 px-3 rounded-lg hover:bg-pink-50/60"
                       >
@@ -938,7 +966,7 @@ export default function Navbar() {
                       {c.subcategories!.map((sub) => (
                         <Link
                           key={sub.id}
-                          href={`/category/${c.slug}?sub=${encodeURIComponent(sub.name)}`}
+                          href={`${getCategoryHref(c.slug)}?sub=${encodeURIComponent(sub.name)}`}
                           onClick={() => setIsMobileMenuOpen(false)}
                           className="block text-xs font-medium text-gray-600 hover:text-[#ff2b75] py-1.5 px-3 rounded-lg hover:bg-pink-50/60 capitalize"
                         >

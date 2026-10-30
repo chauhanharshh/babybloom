@@ -49,6 +49,7 @@ function SearchPageContent() {
               id: p.id.toString(),
               name: p.name,
               price: p.price,
+              stock: p.stock,
               mrp: Math.round(p.price * 1.5),
               imageUrl: p.imageUrl || "",
               ageGroup: p.ageGroup,

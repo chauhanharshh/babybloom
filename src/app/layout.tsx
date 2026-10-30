@@ -14,7 +14,7 @@ const greatVibes = Great_Vibes({
   variable: "--font-great-vibes",
 });
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://babybloom.in";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://www.babyybloom.com";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -34,9 +34,6 @@ export const metadata: Metadata = {
     "BabyBloom",
     "children clothing store",
   ],
-  alternates: {
-    canonical: "/",
-  },
   openGraph: {
     type: "website",
     locale: "en_IN",

@@ -5,7 +5,7 @@ import prisma from "@/lib/prisma";
 import CategoryListingView from "@/components/CategoryListingView";
 import { getActiveOffers, calculateProductOffer, type ActiveOffer } from "@/lib/offers";
 
-export const revalidate = 0;
+export const revalidate = 60;
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -32,77 +32,72 @@ const getCategoryBySlug = cache(async (slug: string) => {
   }
 });
 
+function formatSlugName(slug: string): string {
+  return decodeURIComponent(slug)
+    .replace(/[-_]+/g, " ")
+    .replace(/\b\w/g, (ch) => ch.toUpperCase())
+    .trim();
+}
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const category = await getCategoryBySlug(slug);
-
-  if (!category) {
-    return {
-      title: "Category Not Found",
-      description: "Explore adorable baby and kids wear collections online at BabyBloom.",
-    };
-  }
-
-  const subNames = category.subcategories?.map((s) => s.name).slice(0, 4).join(", ");
-  const title = `${category.name} Collection – Baby & Kids Wear Online`;
-  const description = subNames
-    ? `Shop ${category.name} collection (${subNames}) for babies and kids at BabyBloom. Soft, skin-friendly fabrics with free shipping above ₹999 & easy returns.`
-    : `Shop premium ${category.name} collection for babies and kids online at BabyBloom. Soft, breathable fabrics with free shipping above ₹999 & easy returns.`;
+  const lowerSlug = slug.toLowerCase();
+  const canonicalUrl = ["girls", "boys", "newborn"].includes(lowerSlug)
+    ? `/${lowerSlug}`
+    : `/category/${lowerSlug}`;
+  const displayName = formatSlugName(slug);
+  const title = `${displayName} Collection – Baby & Kids Wear Online`;
+  const description = `Shop premium ${displayName} collection for babies and kids online at BabyBloom. Soft, breathable fabrics with free shipping above ₹999 & easy returns.`;
 
   return {
     title,
     description,
     alternates: {
-      canonical: `/category/${category.slug}`,
+      canonical: canonicalUrl,
     },
     openGraph: {
       title: `${title} | BabyBloom`,
       description,
-      url: `/category/${category.slug}`,
-      ...(category.imageUrl ? { images: [{ url: category.imageUrl, alt: category.name }] } : {}),
+      url: canonicalUrl,
     },
   };
 }
 
 export default async function DynamicCategoryPage({ params }: PageProps) {
   const { slug } = await params;
+  const fallbackName = formatSlugName(slug);
 
   type DbProduct = Awaited<ReturnType<typeof prisma.product.findMany>>[number];
+  type DbCategory = Awaited<ReturnType<typeof getCategoryBySlug>>;
 
-  const categoryRecord = await getCategoryBySlug(slug);
+  let categoryRecord: DbCategory = null;
   let dbProducts: DbProduct[] = [];
   let activeOffers: ActiveOffer[] = [];
 
-  if (categoryRecord) {
-    try {
-      const [productsRes, offersRes] = await Promise.all([
-        prisma.product.findMany({
-          where: {
-            OR: [
-              {
-                category: {
-                  equals: categoryRecord.name,
-                  mode: "insensitive",
-                },
-              },
-              { categories: { has: categoryRecord.name } },
-              { categories: { has: categoryRecord.name.toLowerCase() } },
-            ],
-          },
-          orderBy: { createdAt: "desc" },
-        }),
-        getActiveOffers(),
-      ]);
-      dbProducts = productsRes;
-      activeOffers = offersRes;
-    } catch (error) {
-      console.warn("Notice: Error fetching dynamic category products:", (error as Error)?.message || error);
-    }
+  try {
+    const [catRes, productsRes, offersRes] = await Promise.all([
+      getCategoryBySlug(slug),
+      prisma.product.findMany({
+        where: {
+          OR: [
+            { category: { equals: fallbackName, mode: "insensitive" } },
+            { category: { equals: slug, mode: "insensitive" } },
+            { categories: { has: fallbackName } },
+            { categories: { has: slug.toLowerCase() } },
+          ],
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+      getActiveOffers(),
+    ]);
+    categoryRecord = catRes;
+    dbProducts = productsRes;
+    activeOffers = offersRes;
+  } catch (error) {
+    console.warn("Notice: Error fetching dynamic category products:", (error as Error)?.message || error);
   }
 
-  if (!categoryRecord) {
-    notFound();
-  }
+  const categoryName = categoryRecord?.name || fallbackName;
 
   const products = dbProducts.map((p) => {
     const offer = calculateProductOffer(p.id, p.category, p.price, activeOffers, p.categories);
@@ -110,6 +105,7 @@ export default async function DynamicCategoryPage({ params }: PageProps) {
       id: p.id.toString(),
       name: p.name,
       price: offer.price,
+      stock: p.stock,
       imageUrl: p.imageUrl || "",
       ageGroup: p.ageGroup,
       ageGroups: p.ageGroups,
@@ -125,12 +121,12 @@ export default async function DynamicCategoryPage({ params }: PageProps) {
 
   const dynamicSubcategories = [
     "All",
-    ...(categoryRecord.subcategories?.map((s) => s.name) || []),
+    ...(categoryRecord?.subcategories?.map((s) => s.name) || []),
   ];
 
   return (
     <CategoryListingView
-      title={`${categoryRecord.name} Collection`}
+      title={`${categoryName} Collection`}
       initialProducts={products}
       subcategories={dynamicSubcategories}
     />

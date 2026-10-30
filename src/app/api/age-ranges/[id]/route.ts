@@ -5,6 +5,7 @@ import {
   dbUpdateAgeRange, 
   dbDeleteAgeRange 
 } from "@/lib/ageRanges";
+import { requireAdminAuth } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,9 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const unauth = await requireAdminAuth();
+    if (unauth) return unauth;
+
     const { id } = await params;
     const rangeId = parseInt(id, 10);
     if (isNaN(rangeId)) {
@@ -66,6 +70,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const unauth = await requireAdminAuth();
+    if (unauth) return unauth;
+
     const { id } = await params;
     const rangeId = parseInt(id, 10);
     if (isNaN(rangeId)) {

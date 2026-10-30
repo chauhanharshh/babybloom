@@ -1,9 +1,19 @@
 import type { MetadataRoute } from "next";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://babybloom.in";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://www.babyybloom.com";
 
 export default function robots(): MetadataRoute.Robots {
-  const disallowedPaths = ["/admin", "/admin/", "/admin-*", "/admin*", "/api/", "/api"];
+  const disallowedPaths = [
+    "/admin",
+    "/admin/",
+    "/admin-*",
+    "/admin*",
+    "/api/",
+    "/api",
+    "/cart",
+    "/checkout",
+    "/wishlist",
+  ];
 
   return {
     rules: [

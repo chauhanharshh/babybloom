@@ -3,7 +3,7 @@ import prisma from "@/lib/prisma";
 import CategoryListingView from "@/components/CategoryListingView";
 import { getActiveOffers, calculateProductOffer, type ActiveOffer } from "@/lib/offers";
 
-export const revalidate = 0;
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "Shop All Baby & Kids Collections Online",
@@ -56,6 +56,7 @@ export default async function ShopPage() {
       id: p.id.toString(),
       name: p.name,
       price: offer.price,
+      stock: p.stock,
       imageUrl: p.imageUrl || "",
       ageGroup: p.ageGroup,
       ageGroups: p.ageGroups,

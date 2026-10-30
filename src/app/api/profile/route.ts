@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getStoreProfile, updateStoreProfile } from "@/lib/profile";
+import { requireAdminAuth } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,9 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
+    const unauth = await requireAdminAuth();
+    if (unauth) return unauth;
+
     const body = await req.json();
     const updated = await updateStoreProfile(body);
     return NextResponse.json({ success: true, profile: updated });

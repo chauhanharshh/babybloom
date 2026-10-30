@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { requireAdminAuth } from "@/lib/admin-auth";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -8,6 +9,9 @@ interface RouteParams {
 // DELETE /api/subcategories/[id] - Delete a subcategory
 export async function DELETE(_req: Request, { params }: RouteParams) {
   try {
+    const unauth = await requireAdminAuth();
+    if (unauth) return unauth;
+
     const { id } = await params;
     const subcategoryId = parseInt(id);
 

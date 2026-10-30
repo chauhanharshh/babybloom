@@ -13,6 +13,7 @@ export interface Product {
   categories?: string[];
   description?: string | null;
   mrp?: number;
+  stock?: number;
 }
 
 export interface CartItem extends Product {
@@ -23,7 +24,7 @@ export interface CartItem extends Product {
 interface CartContextType {
   cart: CartItem[];
   wishlist: Product[];
-  addToCart: (product: Product, size?: string) => void;
+  addToCart: (product: Product, size?: string, addQty?: number) => boolean;
   removeFromCart: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
@@ -45,15 +46,55 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; percent: number } | null>(null);
 
-  // Sync with localStorage on client
+  // Sync with localStorage on client & refresh live stock limits from DB
   useEffect(() => {
+    let initialCart: CartItem[] = [];
     try {
       const savedCart = localStorage.getItem("bb_cart");
-      if (savedCart) setCart(JSON.parse(savedCart));
+      if (savedCart) {
+        initialCart = JSON.parse(savedCart);
+        setCart(initialCart);
+      }
       const savedWishlist = localStorage.getItem("bb_wishlist");
       if (savedWishlist) setWishlist(JSON.parse(savedWishlist));
     } catch {
       // Fallback
+    }
+
+    // Sync latest stock limits from /api/products so saved cart items respect current stock
+    if (initialCart.length > 0) {
+      fetch("/api/products")
+        .then((res) => res.json())
+        .then((products) => {
+          if (!Array.isArray(products)) return;
+          const stockMap = new Map<string, number>();
+          for (const p of products) {
+            if (p && p.id !== undefined && typeof p.stock === "number") {
+              stockMap.set(String(p.id), p.stock);
+            }
+          }
+          setCart((prevCart) => {
+            const synced = prevCart
+              .map((item) => {
+                const liveStock = stockMap.get(String(item.id));
+                if (typeof liveStock === "number") {
+                  if (liveStock <= 0) return null;
+                  return {
+                    ...item,
+                    stock: liveStock,
+                    quantity: Math.min(item.quantity, liveStock),
+                  };
+                }
+                return item;
+              })
+              .filter(Boolean) as CartItem[];
+            try {
+              localStorage.setItem("bb_cart", JSON.stringify(synced));
+            } catch {}
+            return synced;
+          });
+        })
+        .catch(() => {});
     }
   }, []);
 
@@ -71,23 +112,56 @@ export function CartProvider({ children }: { children: ReactNode }) {
     } catch {}
   };
 
-  const addToCart = (product: Product, size?: string) => {
+  const addToCart = (product: Product, size?: string, addQty = 1): boolean => {
+    const requestedQty = Math.max(1, addQty);
     const existing = cart.find((item) => item.id === product.id);
+    const maxStock =
+      typeof product.stock === "number"
+        ? product.stock
+        : typeof existing?.stock === "number"
+        ? existing.stock
+        : undefined;
+
+    // Cannot add if out of stock
+    if (typeof maxStock === "number" && maxStock <= 0) {
+      return false;
+    }
+
     if (existing) {
+      if (typeof maxStock === "number" && existing.quantity >= maxStock) {
+        return false;
+      }
+      const nextQty =
+        typeof maxStock === "number"
+          ? Math.min(existing.quantity + requestedQty, maxStock)
+          : existing.quantity + requestedQty;
+
       saveCart(
         cart.map((item) =>
-          item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+          item.id === product.id
+            ? {
+                ...item,
+                stock: maxStock ?? item.stock,
+                quantity: nextQty,
+                ...(size ? { size } : {}),
+              }
+            : item
         )
       );
+      return true;
     } else {
+      const initialQty =
+        typeof maxStock === "number" ? Math.min(requestedQty, maxStock) : requestedQty;
       saveCart([
         ...cart,
         {
           ...product,
-          quantity: 1,
+          stock: maxStock,
+          quantity: initialQty,
           size: size || `${product.ageGroup || "1-2Y"} / Standard`,
         },
       ]);
+      return true;
     }
   };
 
@@ -101,7 +175,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return;
     }
     saveCart(
-      cart.map((item) => (item.id === productId ? { ...item, quantity } : item))
+      cart.map((item) => {
+        if (item.id !== productId) return item;
+        const clampedQty =
+          typeof item.stock === "number" ? Math.min(quantity, item.stock) : quantity;
+        return { ...item, quantity: clampedQty };
+      })
     );
   };
 

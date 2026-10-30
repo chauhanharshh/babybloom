@@ -437,14 +437,24 @@ export function getStoreLogoSrc(): string {
   return "/icons/apple-touch-icon.png";
 }
 
+export function escapeHtml(str?: string | number | null): string {
+  if (str === null || str === undefined) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 export function generateGstInvoiceHtml(invoice: InvoiceData): string {
   const formattedDate = formatInvoiceDateTime(invoice.createdAt);
   const { cgstLabel, sgstLabel, gstLabel } = getInvoiceTaxLabels(invoice.items);
   const logoSrc = getStoreLogoSrc();
 
   const addressParts = (invoice.storeAddress || "Khanna Nagar, House no. 41, Opposite Kaushik Academy, Haridwar, Uttarakhand, 249401").split(",");
-  const storeAddressLine1 = addressParts.slice(0, 2).join(",").trim();
-  const storeAddressLine2 = addressParts.slice(2).join(",").trim();
+  const storeAddressLine1 = escapeHtml(addressParts.slice(0, 2).join(",").trim());
+  const storeAddressLine2 = escapeHtml(addressParts.slice(2).join(",").trim());
 
   const rowsHtml = invoice.items
     .map(
@@ -452,8 +462,8 @@ export function generateGstInvoiceHtml(invoice: InvoiceData): string {
       <tr>
         <td style="padding: 12px 10px; border: 1px solid #9ca3af; text-align: center; font-size: 13px; color: #111827;">${item.sno}</td>
         <td style="padding: 12px 12px; border: 1px solid #9ca3af; font-size: 13px; color: #111827;">
-          <strong style="font-size: 13.5px; color: #111827;">${item.name}</strong><br/>
-          <span style="color: #4b5563; font-size: 12px;">Size: ${item.ageGroup}</span>
+          <strong style="font-size: 13.5px; color: #111827;">${escapeHtml(item.name)}</strong><br/>
+          <span style="color: #4b5563; font-size: 12px;">Size: ${escapeHtml(item.ageGroup)}</span>
         </td>
         <td style="padding: 12px 10px; border: 1px solid #9ca3af; text-align: center; font-size: 13px; color: #111827;">${item.hsnCode}</td>
         <td style="padding: 12px 10px; border: 1px solid #9ca3af; text-align: center; font-size: 13px; color: #111827;">${item.quantity}</td>
@@ -568,13 +578,13 @@ export function generateGstInvoiceHtml(invoice: InvoiceData): string {
             </div>
             <div style="padding: 12px 16px; font-size: 13px; color: #1f2937; line-height: 1.5;">
               <div style="font-size: 16px; font-weight: 800; color: #111827; margin-bottom: 4px;">
-                ${invoice.customerName}
+                ${escapeHtml(invoice.customerName)}
               </div>
-              <div>${invoice.customerAddress || "N/A"}</div>
+              <div>${escapeHtml(invoice.customerAddress || "N/A")}</div>
               <div style="margin-top: 8px; color: #111827;">
-                <strong>&#9742;</strong> ${invoice.customerPhone || "N/A"}
+                <strong>&#9742;</strong> ${escapeHtml(invoice.customerPhone || "N/A")}
                 &nbsp;&nbsp;|&nbsp;&nbsp;
-                <strong>&#9993;</strong> ${invoice.customerEmail || "N/A"}
+                <strong>&#9993;</strong> ${escapeHtml(invoice.customerEmail || "N/A")}
               </div>
             </div>
           </div>

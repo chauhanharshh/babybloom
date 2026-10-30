@@ -48,14 +48,18 @@ const DEFAULT_FOOTER_PROFILE: FooterProfile = {
   instagramUrl: "https://instagram.com",
 };
 
+let cachedFooterProfile: FooterProfile | null = null;
+
 export default function Footer() {
-  const [profile, setProfile] = useState<FooterProfile>(DEFAULT_FOOTER_PROFILE);
+  const [profile, setProfile] = useState<FooterProfile>(cachedFooterProfile || DEFAULT_FOOTER_PROFILE);
 
   useEffect(() => {
+    if (cachedFooterProfile) return;
     fetch("/api/profile")
       .then((res) => res.json())
       .then((data) => {
         if (data?.success && data?.profile) {
+          cachedFooterProfile = data.profile;
           setProfile(data.profile);
         }
       })

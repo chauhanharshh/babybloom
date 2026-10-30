@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import prisma from '@/lib/prisma';
+import { requireAdminAuth } from '@/lib/admin-auth';
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -22,6 +24,9 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const unauth = await requireAdminAuth();
+    if (unauth) return unauth;
+
     const body = await request.json();
     const { name, description, price, stock, category, categories, ageGroup, ageGroups, style, imageUrl } = body;
 
@@ -51,6 +56,7 @@ export async function POST(request: Request) {
       }
     });
 
+    revalidatePath("/", "layout");
     return NextResponse.json(product, { status: 201 });
   } catch (error) {
     console.error("Error creating product:", error);

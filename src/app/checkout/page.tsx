@@ -40,7 +40,7 @@ export interface AddressData {
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { cart, totalPrice, totalItems, clearCart, appliedCoupon } = useCart();
+  const { cart, totalPrice, totalItems, clearCart, removeFromCart, updateQuantity, appliedCoupon } = useCart();
 
   // Store profile and dynamic payment settings
   const [storeProfile, setStoreProfile] = useState<StoreProfileData | null>(null);
@@ -202,8 +202,8 @@ export default function CheckoutPage() {
         body: payload,
       });
 
-      // Automatic retry once if cold start or transient DB wake-up occurred
-      if (!res.ok) {
+      // Automatic retry once only if a server error (5xx) or transient DB wake-up occurred
+      if (res.status >= 500) {
         await new Promise((r) => setTimeout(r, 600));
         res = await fetch("/api/orders", {
           method: "POST",
@@ -216,6 +216,16 @@ export default function CheckoutPage() {
       if (res.ok && data.success) {
         setOrderSuccess({ id: data.orderId, total: displayTotal });
         clearCart();
+      } else if (res.status === 409 && data.outOfStockProductId) {
+        // Atomic stock check failed ("First Checkout Wins") - sync user's cart with live stock
+        const pid = String(data.outOfStockProductId);
+        const avail = Number(data.availableStock ?? 0);
+        if (avail <= 0) {
+          removeFromCart(pid);
+        } else {
+          updateQuantity(pid, avail);
+        }
+        alert(data.error || "Sorry! An item in your cart just went Out of Stock while you were checking out.");
       } else {
         alert("Could not place order: " + (data.error || "Please try again"));
       }

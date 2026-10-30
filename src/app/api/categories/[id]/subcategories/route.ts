@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { requireAdminAuth } from "@/lib/admin-auth";
 
 function slugify(text: string): string {
   return text
@@ -17,6 +18,9 @@ interface RouteParams {
 // POST /api/categories/[id]/subcategories - Add a subcategory to this category
 export async function POST(req: Request, { params }: RouteParams) {
   try {
+    const unauth = await requireAdminAuth();
+    if (unauth) return unauth;
+
     const { id } = await params;
     const categoryId = parseInt(id);
 

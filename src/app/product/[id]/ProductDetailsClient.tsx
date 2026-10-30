@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import LazyImage from "@/components/LazyImage";
@@ -34,7 +34,12 @@ interface ProductDetailsClientProps {
 
 export default function ProductDetailsClient({ product }: ProductDetailsClientProps) {
   const router = useRouter();
-  const { addToCart, toggleWishlist, isInWishlist, totalItems } = useCart();
+  const { cart, addToCart, toggleWishlist, isInWishlist, totalItems } = useCart();
+  const maxStock = typeof product.stock === "number" ? product.stock : undefined;
+  const isOutOfStock = typeof maxStock === "number" && maxStock <= 0;
+  const inCartQty = cart.find((i) => i.id === product.id)?.quantity || 0;
+  const remainingStock =
+    typeof maxStock === "number" ? Math.max(0, maxStock - inCartQty) : undefined;
 
   const availableAgeGroups = useMemo(() => {
     if (Array.isArray(product.ageGroups) && product.ageGroups.length > 0) {
@@ -64,6 +69,12 @@ export default function ProductDetailsClient({ product }: ProductDetailsClientPr
   const [openAccordion, setOpenAccordion] = useState<string | null>("details");
   const [addedToast, setAddedToast] = useState(false);
 
+  useEffect(() => {
+    if (typeof document !== "undefined" && product?.name) {
+      document.title = `Buy ${product.name} Online (${product.category}) | BabyBloom`;
+    }
+  }, [product?.name, product?.category]);
+
   const isLiked = isInWishlist(product.id);
   const mrp = product.mrp || Math.round(product.price * 1.5);
   const discountPercent = Math.round(((mrp - product.price) / mrp) * 100);
@@ -72,17 +83,17 @@ export default function ProductDetailsClient({ product }: ProductDetailsClientPr
   const images = product.imageUrl ? [product.imageUrl] : [""];
 
   const handleAddToCart = () => {
-    for (let i = 0; i < quantity; i++) {
-      addToCart(product, selectedSize);
+    if (isOutOfStock) return;
+    const added = addToCart(product, selectedSize, quantity);
+    if (added) {
+      setAddedToast(true);
+      setTimeout(() => setAddedToast(false), 4000);
     }
-    setAddedToast(true);
-    setTimeout(() => setAddedToast(false), 4000);
   };
 
   const handleBuyNow = () => {
-    for (let i = 0; i < quantity; i++) {
-      addToCart(product, selectedSize);
-    }
+    if (isOutOfStock) return;
+    addToCart(product, selectedSize, quantity);
     router.push("/checkout");
   };
 
@@ -317,48 +328,100 @@ export default function ProductDetailsClient({ product }: ProductDetailsClientPr
           </div>
 
           {/* Quantity Stepper & Add to Cart / Buy Now Buttons */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 pt-2">
-            <div className="flex items-center justify-between border border-gray-200 rounded-xl p-1 bg-gray-50 self-start sm:self-auto">
-              <button
-                type="button"
-                onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-gray-700 hover:text-[#ff2b75] shadow-xs active:scale-95"
-                aria-label="Decrease quantity"
-              >
-                <Minus size={13} />
-              </button>
-              <span className="w-8 text-center font-extrabold text-sm text-gray-900">
-                {quantity}
-              </span>
-              <button
-                type="button"
-                onClick={() => setQuantity(quantity + 1)}
-                className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-gray-700 hover:text-[#ff2b75] shadow-xs active:scale-95"
-                aria-label="Increase quantity"
-              >
-                <Plus size={13} />
-              </button>
-            </div>
+          {(() => {
+            const effectiveMaxSelectable =
+              typeof remainingStock === "number"
+                ? Math.max(1, remainingStock)
+                : maxStock;
+            const isAtMaxLimit =
+              typeof effectiveMaxSelectable === "number" &&
+              quantity >= effectiveMaxSelectable;
+            const isCartAlreadyFull =
+              typeof remainingStock === "number" && remainingStock <= 0 && !isOutOfStock;
 
-            <div className="flex-1 flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handleAddToCart}
-                className="flex-1 bg-pink-50 hover:bg-pink-100 text-[#ff2b75] border border-pink-200 py-3 px-3 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 active:scale-98 transition-all"
-              >
-                <ShoppingCart size={15} />
-                <span>Add to Cart</span>
-              </button>
+            return (
+              <div className="space-y-2 pt-2">
+                {typeof maxStock === "number" && (
+                  <div className="flex items-center gap-2 text-xs font-bold">
+                    {isOutOfStock ? (
+                      <span className="text-red-600 bg-red-50 border border-red-200 px-2.5 py-0.5 rounded-full">
+                        Out of Stock
+                      </span>
+                    ) : (
+                      <span className="text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
+                        In Stock: Only {maxStock} available
+                        {inCartQty > 0 ? ` (${inCartQty} in cart)` : ""}
+                      </span>
+                    )}
+                  </div>
+                )}
 
-              <button
-                type="button"
-                onClick={handleBuyNow}
-                className="flex-1 bg-[#ff2b75] hover:bg-[#e01d62] text-white py-3 px-3 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-md shadow-pink-500/20 active:scale-98 transition-all"
-              >
-                <span>Buy Now</span>
-              </button>
-            </div>
-          </div>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+                  <div className="flex items-center justify-between border border-gray-200 rounded-xl p-1 bg-gray-50 self-start sm:self-auto">
+                    <button
+                      type="button"
+                      disabled={isOutOfStock || quantity <= 1}
+                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                      className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-gray-700 hover:text-[#ff2b75] shadow-xs active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                      aria-label="Decrease quantity"
+                    >
+                      <Minus size={13} />
+                    </button>
+                    <span className="w-8 text-center font-extrabold text-sm text-gray-900">
+                      {isOutOfStock ? 0 : Math.min(quantity, effectiveMaxSelectable ?? quantity)}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={isOutOfStock || isAtMaxLimit || isCartAlreadyFull}
+                      onClick={() => {
+                        if (typeof effectiveMaxSelectable === "number") {
+                          setQuantity(Math.min(effectiveMaxSelectable, quantity + 1));
+                        } else {
+                          setQuantity(quantity + 1);
+                        }
+                      }}
+                      title={
+                        isAtMaxLimit
+                          ? `Maximum available stock (${maxStock}) reached`
+                          : "Increase quantity"
+                      }
+                      className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-gray-700 hover:text-[#ff2b75] shadow-xs active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                      aria-label="Increase quantity"
+                    >
+                      <Plus size={13} />
+                    </button>
+                  </div>
+
+                  <div className="flex-1 flex items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={isOutOfStock || isCartAlreadyFull}
+                      onClick={handleAddToCart}
+                      className="flex-1 bg-pink-50 hover:bg-pink-100 text-[#ff2b75] border border-pink-200 py-3 px-3 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 active:scale-98 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                      <ShoppingCart size={15} />
+                      <span>
+                        {isOutOfStock
+                          ? "Out of Stock"
+                          : isCartAlreadyFull
+                          ? `Max ${maxStock} in Cart`
+                          : "Add to Cart"}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={isOutOfStock}
+                      onClick={handleBuyNow}
+                      className="flex-1 bg-[#ff2b75] hover:bg-[#e01d62] text-white py-3 px-3 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-md shadow-pink-500/20 active:scale-98 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                      <span>{isOutOfStock ? "Unavailable" : "Buy Now"}</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Added to Cart Toast Notification with View Cart Link */}
           {addedToast && (

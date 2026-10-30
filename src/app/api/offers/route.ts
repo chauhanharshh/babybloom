@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { requireAdminAuth } from "@/lib/admin-auth";
 
 export async function GET(request: Request) {
   try {
@@ -20,6 +21,9 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const unauth = await requireAdminAuth();
+    if (unauth) return unauth;
+
     const body = await request.json();
     const {
       title,

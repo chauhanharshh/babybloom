@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { requireAdminAuth } from "@/lib/admin-auth";
 
 function slugify(text: string): string {
   return text
@@ -51,6 +52,9 @@ export async function GET() {
 // POST /api/categories - Create a new category with optional subcategories
 export async function POST(req: Request) {
   try {
+    const unauth = await requireAdminAuth();
+    if (unauth) return unauth;
+
     const body = await req.json();
     const { name, description, imageUrl, subcategories } = body;
 
