@@ -1,8 +1,24 @@
+import type { Metadata } from "next";
 import prisma from "@/lib/prisma";
 import CategoryListingView from "@/components/CategoryListingView";
 import { getActiveOffers, calculateProductOffer, type ActiveOffer } from "@/lib/offers";
 
 export const revalidate = 0;
+
+export const metadata: Metadata = {
+  title: "Shop All Baby & Kids Collections Online",
+  description:
+    "Browse all baby and kids wear collections at BabyBloom. Shop trendy frocks, rompers, co-ord sets, hoodies, and ethnic wear for ages 0 to 9 years with free shipping above ₹999.",
+  alternates: {
+    canonical: "/shop",
+  },
+  openGraph: {
+    title: "Shop All Baby & Kids Collections Online | BabyBloom",
+    description:
+      "Browse all baby and kids wear collections at BabyBloom. Trendy outfits for newborns, baby girls & boys.",
+    url: "/shop",
+  },
+};
 
 export default async function ShopPage() {
   type DbProduct = Awaited<ReturnType<typeof prisma.product.findMany>>[number];
@@ -35,14 +51,16 @@ export default async function ShopPage() {
   }
 
   const products = dbProducts.map((p) => {
-    const offer = calculateProductOffer(p.id, p.category, p.price, activeOffers);
+    const offer = calculateProductOffer(p.id, p.category, p.price, activeOffers, p.categories);
     return {
       id: p.id.toString(),
       name: p.name,
       price: offer.price,
       imageUrl: p.imageUrl || "",
       ageGroup: p.ageGroup,
+      ageGroups: p.ageGroups,
       category: p.category,
+      categories: p.categories,
       style: p.style,
       description: p.description,
       mrp: offer.mrp,

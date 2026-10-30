@@ -1,8 +1,24 @@
+import type { Metadata } from "next";
 import prisma from "@/lib/prisma";
 import CategoryListingView from "@/components/CategoryListingView";
 import { getActiveOffers, calculateProductOffer, type ActiveOffer } from "@/lib/offers";
 
 export const revalidate = 0;
+
+export const metadata: Metadata = {
+  title: "Boys Wear Online (1–9 Years) – T-Shirts, Sets, Jeans & Party Wear",
+  description:
+    "Shop stylish and comfortable boys wear for 1 to 9 years at BabyBloom. Explore trendy co-ord sets, shirts, jeans, hoodies, and ethnic outfits for boys.",
+  alternates: {
+    canonical: "/boys",
+  },
+  openGraph: {
+    title: "Boys Wear Online (1–9 Years) | BabyBloom",
+    description:
+      "Shop stylish and comfortable boys wear for 1 to 9 years at BabyBloom. Trendy co-ord sets, shirts, jeans & party outfits.",
+    url: "/boys",
+  },
+};
 
 export default async function BoysPage() {
   type DbProduct = Awaited<ReturnType<typeof prisma.product.findMany>>[number];
@@ -17,7 +33,13 @@ export default async function BoysPage() {
   try {
     const [productsRes, offersRes, categoryRes] = await Promise.all([
       prisma.product.findMany({
-        where: { category: "Boys" },
+        where: {
+          OR: [
+            { category: { equals: "Boys", mode: "insensitive" } },
+            { categories: { has: "Boys" } },
+            { categories: { has: "boys" } },
+          ],
+        },
         orderBy: { createdAt: "desc" },
       }),
       getActiveOffers(),
@@ -37,14 +59,16 @@ export default async function BoysPage() {
   }
 
   const products = dbProducts.map((p) => {
-    const offer = calculateProductOffer(p.id, p.category, p.price, activeOffers);
+    const offer = calculateProductOffer(p.id, p.category, p.price, activeOffers, p.categories);
     return {
       id: p.id.toString(),
       name: p.name,
       price: offer.price,
       imageUrl: p.imageUrl || "",
       ageGroup: p.ageGroup,
+      ageGroups: p.ageGroups,
       category: p.category,
+      categories: p.categories,
       style: p.style,
       description: p.description,
       mrp: offer.mrp,

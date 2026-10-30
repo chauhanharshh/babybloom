@@ -1,3 +1,20 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Frequently Asked Questions (FAQ) – Shipping, Tracking & Fabrics",
+  description:
+    "Find answers to common questions about BabyBloom baby and kids wear, shipping across India, order tracking via WhatsApp & email, and hypoallergenic cotton fabrics.",
+  alternates: {
+    canonical: "/faq",
+  },
+  openGraph: {
+    title: "Frequently Asked Questions (FAQ) | BabyBloom",
+    description:
+      "Find answers to common questions about BabyBloom baby and kids wear, shipping, order tracking & fabric safety.",
+    url: "/faq",
+  },
+};
+
 export default function FAQPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 min-h-[60vh]">

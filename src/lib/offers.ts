@@ -33,7 +33,8 @@ export function calculateProductOffer(
   productId: number | string,
   category: string | undefined,
   basePrice: number,
-  activeOffers: ActiveOffer[]
+  activeOffers: ActiveOffer[],
+  categories?: string[]
 ) {
   if (!activeOffers || activeOffers.length === 0) {
     return {
@@ -60,9 +61,18 @@ export function calculateProductOffer(
     }
   }
 
-  if (!matchedOffer && category) {
+  const allCategories = [
+    ...(category ? [category.toLowerCase().trim()] : []),
+    ...(Array.isArray(categories) ? categories.map((c) => c.toLowerCase().trim()) : []),
+  ];
+
+  if (!matchedOffer && allCategories.length > 0) {
     for (const offer of activeOffers) {
-      if (offer.scope === "CATEGORY" && offer.targetCategory?.toLowerCase() === category.toLowerCase()) {
+      if (
+        offer.scope === "CATEGORY" &&
+        offer.targetCategory &&
+        allCategories.includes(offer.targetCategory.toLowerCase().trim())
+      ) {
         matchedOffer = offer;
         break;
       }

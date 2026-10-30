@@ -5,6 +5,7 @@ export interface StoreProfileData {
   storeName: string;
   tagline: string;
   ownerName: string;
+  gstNumber: string;
   phone: string;
   whatsappNumber: string;
   email: string;
@@ -36,6 +37,7 @@ export const DEFAULT_STORE_PROFILE: StoreProfileData = {
   storeName: "Baby Bloom",
   tagline: "Everyday outfits for your little trendsetters",
   ownerName: "Harsh Chauhan",
+  gstNumber: "",
   phone: "+91 95200 42719",
   whatsappNumber: "919520042719",
   email: "babybloom.bb2024@gmail.com",
@@ -62,8 +64,23 @@ export const DEFAULT_STORE_PROFILE: StoreProfileData = {
   accountHolderName: "Baby Bloom Store",
 };
 
+let gstColumnEnsured = false;
+
+async function ensureGstColumn() {
+  if (gstColumnEnsured) return;
+  try {
+    await prisma.$executeRawUnsafe(
+      `ALTER TABLE "StoreProfile" ADD COLUMN IF NOT EXISTS "gstNumber" TEXT DEFAULT '';`
+    );
+    gstColumnEnsured = true;
+  } catch {
+    // Ignore if table doesn't exist yet or DB doesn't allow DDL
+  }
+}
+
 export async function getStoreProfile(): Promise<StoreProfileData> {
   try {
+    await ensureGstColumn();
     let profile = await prisma.storeProfile.findUnique({
       where: { id: 1 },
     });
@@ -76,6 +93,7 @@ export async function getStoreProfile(): Promise<StoreProfileData> {
             storeName: DEFAULT_STORE_PROFILE.storeName,
             tagline: DEFAULT_STORE_PROFILE.tagline,
             ownerName: DEFAULT_STORE_PROFILE.ownerName,
+            gstNumber: DEFAULT_STORE_PROFILE.gstNumber,
             phone: DEFAULT_STORE_PROFILE.phone,
             whatsappNumber: DEFAULT_STORE_PROFILE.whatsappNumber,
             email: DEFAULT_STORE_PROFILE.email,
@@ -115,6 +133,7 @@ export async function getStoreProfile(): Promise<StoreProfileData> {
       storeName: profile.storeName || DEFAULT_STORE_PROFILE.storeName,
       tagline: profile.tagline || DEFAULT_STORE_PROFILE.tagline,
       ownerName: profile.ownerName || DEFAULT_STORE_PROFILE.ownerName,
+      gstNumber: (profile as { gstNumber?: string | null }).gstNumber || "",
       phone: profile.phone || DEFAULT_STORE_PROFILE.phone,
       whatsappNumber: profile.whatsappNumber || DEFAULT_STORE_PROFILE.whatsappNumber,
       email: profile.email || DEFAULT_STORE_PROFILE.email,
@@ -146,12 +165,14 @@ export async function getStoreProfile(): Promise<StoreProfileData> {
 }
 
 export async function updateStoreProfile(data: Partial<StoreProfileData>): Promise<StoreProfileData> {
+  await ensureGstColumn();
   const profile = await prisma.storeProfile.upsert({
     where: { id: 1 },
     update: {
       storeName: data.storeName,
       tagline: data.tagline,
       ownerName: data.ownerName,
+      gstNumber: data.gstNumber,
       phone: data.phone,
       whatsappNumber: data.whatsappNumber,
       email: data.email,
@@ -181,6 +202,7 @@ export async function updateStoreProfile(data: Partial<StoreProfileData>): Promi
       storeName: data.storeName || DEFAULT_STORE_PROFILE.storeName,
       tagline: data.tagline || DEFAULT_STORE_PROFILE.tagline,
       ownerName: data.ownerName || DEFAULT_STORE_PROFILE.ownerName,
+      gstNumber: data.gstNumber || DEFAULT_STORE_PROFILE.gstNumber,
       phone: data.phone || DEFAULT_STORE_PROFILE.phone,
       whatsappNumber: data.whatsappNumber || DEFAULT_STORE_PROFILE.whatsappNumber,
       email: data.email || DEFAULT_STORE_PROFILE.email,
@@ -212,6 +234,7 @@ export async function updateStoreProfile(data: Partial<StoreProfileData>): Promi
     storeName: profile.storeName,
     tagline: profile.tagline || "",
     ownerName: profile.ownerName || "",
+    gstNumber: (profile as { gstNumber?: string | null }).gstNumber || "",
     phone: profile.phone,
     whatsappNumber: profile.whatsappNumber,
     email: profile.email,

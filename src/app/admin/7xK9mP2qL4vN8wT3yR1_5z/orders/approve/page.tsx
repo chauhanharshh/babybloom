@@ -3,8 +3,9 @@
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle2, ShoppingBag, ArrowRight, Clock, MessageSquare, AlertCircle } from "lucide-react";
+import { CheckCircle2, ShoppingBag, ArrowRight, Clock, MessageSquare, AlertCircle, FileText } from "lucide-react";
 import { ADMIN_BASE_PATH } from "@/lib/admin";
+import { formatInvoiceNumber } from "@/lib/invoices";
 
 function ApproveOrderContent() {
   const searchParams = useSearchParams();
@@ -117,6 +118,9 @@ function ApproveOrderContent() {
               </h2>
               <p className="text-xs text-gray-500 mt-1">
                 The order status is now updated to <strong>Approved</strong> in the Admin Panel.
+                {orderDetails?.customerEmail
+                  ? ` Confirmation email has been sent to ${orderDetails.customerEmail}.`
+                  : ""}
               </p>
             </div>
 
@@ -144,6 +148,12 @@ function ApproveOrderContent() {
                   </div>
                 )}
                 <div className="flex justify-between text-gray-600">
+                  <span>Invoice No:</span>
+                  <span className="font-mono font-bold text-[#ff2b75]">
+                    {formatInvoiceNumber(orderDetails.id, orderDetails.createdAt)}
+                  </span>
+                </div>
+                <div className="flex justify-between text-gray-600">
                   <span>Status:</span>
                   <span className="font-bold text-emerald-600 uppercase">Approved</span>
                 </div>
@@ -152,6 +162,14 @@ function ApproveOrderContent() {
 
             {/* Action Buttons */}
             <div className="pt-2 flex flex-col gap-2.5">
+              <Link
+                href={`${ADMIN_BASE_PATH}/invoices?orderId=${orderId}`}
+                className="w-full bg-pink-50 hover:bg-pink-100 text-[#ff2b75] border border-pink-200 py-3 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-colors"
+              >
+                <FileText size={16} />
+                <span>View / Print GST Invoice</span>
+              </Link>
+
               <Link
                 href={`${ADMIN_BASE_PATH}/orders`}
                 className="w-full bg-[#ff2b75] hover:bg-[#e01d62] text-white py-3.5 px-4 rounded-xl font-bold text-sm shadow-md shadow-pink-500/20 active:scale-98 transition-all flex items-center justify-center gap-2"

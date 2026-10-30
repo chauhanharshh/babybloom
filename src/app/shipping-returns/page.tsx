@@ -1,3 +1,20 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Shipping & Returns Policy – Fast Delivery & Easy Exchanges",
+  description:
+    "Learn about BabyBloom's shipping timelines across India, free delivery offers, and our hassle-free return and exchange policy for baby and kids clothes.",
+  alternates: {
+    canonical: "/shipping-returns",
+  },
+  openGraph: {
+    title: "Shipping & Returns Policy | BabyBloom",
+    description:
+      "Learn about BabyBloom's shipping timelines across India and our hassle-free return policy.",
+    url: "/shipping-returns",
+  },
+};
+
 export default function ShippingReturnsPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 min-h-[60vh]">

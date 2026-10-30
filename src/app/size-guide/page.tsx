@@ -1,3 +1,20 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Baby & Kids Clothing Size Guide (Newborn to 6 Years)",
+  description:
+    "Use BabyBloom's baby and kids size chart with height (cm) and weight (kg) measurements to find the perfect fit from Newborn (0–3M) up to 6 years.",
+  alternates: {
+    canonical: "/size-guide",
+  },
+  openGraph: {
+    title: "Baby & Kids Clothing Size Guide | BabyBloom",
+    description:
+      "Use BabyBloom's baby and kids size chart with height and weight measurements to find the perfect fit.",
+    url: "/size-guide",
+  },
+};
+
 export default function SizeGuidePage() {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 min-h-[60vh]">

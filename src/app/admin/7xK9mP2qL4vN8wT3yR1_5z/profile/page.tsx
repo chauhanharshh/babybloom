@@ -51,6 +51,7 @@ export default function AdminProfilePage() {
     storeName: "Baby Bloom",
     tagline: "Everyday outfits for your little trendsetters",
     ownerName: "Harsh Chauhan",
+    gstNumber: "",
     phone: "+91 95200 42719",
     whatsappNumber: "919520042719",
     email: "babybloom.bb2024@gmail.com",
@@ -379,6 +380,21 @@ export default function AdminProfilePage() {
                   onChange={(e) => setFormData({ ...formData, ownerName: e.target.value })}
                   placeholder="e.g. Harsh Chauhan"
                   className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#ff2b75]/20 focus:border-[#ff2b75]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5 flex items-center justify-between">
+                  <span>GST Number (GSTIN)</span>
+                  <span className="text-[10px] text-gray-400 font-normal">15-digit GSTIN (Optional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.gstNumber || ""}
+                  onChange={(e) => setFormData({ ...formData, gstNumber: e.target.value.toUpperCase() })}
+                  placeholder="e.g. 05AAAAA0000A1Z5"
+                  maxLength={15}
+                  className="w-full px-3.5 py-2.5 text-sm font-mono uppercase rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#ff2b75]/20 focus:border-[#ff2b75]"
                 />
               </div>
 
@@ -989,6 +1005,11 @@ export default function AdminProfilePage() {
                   <MapPin size={13} className="shrink-0 text-white/80" />
                   <span className="truncate">{formData.addressLine1}, {formData.city}</span>
                 </div>
+                {formData.gstNumber && (
+                  <div className="flex items-center gap-2 pt-1 font-mono font-bold text-white/95">
+                    <span>GSTIN: {formData.gstNumber}</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>

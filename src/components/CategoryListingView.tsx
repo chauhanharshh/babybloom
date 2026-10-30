@@ -84,9 +84,9 @@ export default function CategoryListingView({
           <ChevronLeft size={24} />
         </button>
 
-        <h1 className="text-base font-extrabold text-gray-900 tracking-tight text-center truncate px-2">
+        <span className="text-base font-extrabold text-gray-900 tracking-tight text-center truncate px-2">
           {title}
-        </h1>
+        </span>
 
         <Link
           href="/search"
@@ -98,8 +98,8 @@ export default function CategoryListingView({
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-8 w-full flex-1">
-        {/* Desktop Title Header */}
-        <div className="hidden md:flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
+        {/* Desktop Title Header (Single H1 in DOM across mobile & desktop) */}
+        <div className="sr-only md:not-sr-only md:flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
           <div>
             <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">{title}</h1>
             <p className="text-xs text-gray-500 mt-1">Showing {filteredProducts.length} trendy items for your little ones</p>

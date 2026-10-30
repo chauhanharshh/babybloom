@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { LayoutDashboard, Package, ShoppingCart, BadgePercent, LogOut, Menu, X, FolderTree, Store } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, BadgePercent, LogOut, Menu, X, FolderTree, Store, FileText } from "lucide-react";
 import { useState } from "react";
 
 import { ADMIN_BASE_PATH } from "@/lib/admin";
@@ -76,6 +76,10 @@ export default function AdminLayout({
           <Link onClick={() => setIsMobileMenuOpen(false)} href={`${ADMIN_BASE_PATH}/orders`} className="flex items-center gap-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-primary/5 hover:text-primary transition-colors">
             <ShoppingCart className="w-5 h-5" />
             <span className="font-medium">Orders</span>
+          </Link>
+          <Link onClick={() => setIsMobileMenuOpen(false)} href={`${ADMIN_BASE_PATH}/invoices`} className="flex items-center gap-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-primary/5 hover:text-primary transition-colors">
+            <FileText className="w-5 h-5" />
+            <span className="font-medium">GST Invoices</span>
           </Link>
           <Link onClick={() => setIsMobileMenuOpen(false)} href={`${ADMIN_BASE_PATH}/profile`} className="flex items-center gap-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-primary/5 hover:text-primary transition-colors">
             <Store className="w-5 h-5" />

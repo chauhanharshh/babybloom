@@ -26,6 +26,7 @@ const YouTube = ({ size = 18 }: { size?: number }) => (
 );
 
 interface FooterProfile {
+  gstNumber?: string;
   addressLine1?: string;
   addressLine2?: string;
   city?: string;
@@ -83,6 +84,11 @@ export default function Footer() {
             <p className="text-gray-600 text-xs sm:text-sm leading-relaxed">
               Everyday outfits for your little trendsetters. Premium baby and kids wear for ages 0 to 6 years with safe, gentle fabrics.
             </p>
+            {profile.gstNumber && (
+              <p className="text-[11px] font-bold text-gray-700 font-mono bg-pink-50/70 border border-pink-100 inline-block px-2.5 py-1 rounded-lg">
+                GST No: {profile.gstNumber}
+              </p>
+            )}
           </div>
 
           {/* Quick Links */}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Plus, Search, Edit2, Trash2, X, UploadCloud, ImageIcon, Loader2, FolderTree, RefreshCw } from "lucide-react";
+import { Plus, Search, Edit2, Trash2, X, UploadCloud, ImageIcon, Loader2, FolderTree, RefreshCw, Check } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import ConfirmDialog from "@/components/admin/ConfirmDialog";
@@ -15,7 +15,9 @@ type Product = {
   price: number;
   stock: number;
   category: string;
+  categories?: string[];
   ageGroup: string;
+  ageGroups?: string[];
   style?: string;
   description: string | null;
   imageUrl: string | null;
@@ -113,7 +115,9 @@ export default function AdminProducts() {
     price: "",
     stock: "",
     category: "Girls",
+    categories: ["Girls"] as string[],
     ageGroup: "0-1 Yrs",
+    ageGroups: ["0-1 Yrs"] as string[],
     style: "Regular",
     description: "",
     imageUrl: ""
@@ -175,7 +179,11 @@ export default function AdminProducts() {
   // Filter products
   const filteredProducts = products.filter(p => {
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = categoryFilter === "All Categories" || p.category === categoryFilter;
+    const prodCategories = (p.categories && p.categories.length > 0) ? p.categories : [p.category];
+    const matchesCategory =
+      categoryFilter === "All Categories" ||
+      p.category === categoryFilter ||
+      prodCategories.some(c => c.toLowerCase() === categoryFilter.toLowerCase());
     return matchesSearch && matchesCategory;
   });
 
@@ -183,19 +191,39 @@ export default function AdminProducts() {
     fetchAgeRanges();
     if (product) {
       setEditingProduct(product);
+      const prodCategories = (product.categories && product.categories.length > 0)
+        ? product.categories
+        : (product.category ? [product.category] : ["Girls"]);
+      const prodAgeGroups = (product.ageGroups && product.ageGroups.length > 0)
+        ? product.ageGroups
+        : (product.ageGroup ? product.ageGroup.split(",").map(s => s.trim()).filter(Boolean) : ["0-1 Yrs"]);
+
       setFormData({
         name: product.name,
         price: product.price.toString(),
         stock: product.stock.toString(),
-        category: product.category,
-        ageGroup: product.ageGroup,
+        category: prodCategories[0] || product.category || "Girls",
+        categories: prodCategories,
+        ageGroup: prodAgeGroups.join(", ") || product.ageGroup || "0-1 Yrs",
+        ageGroups: prodAgeGroups,
         style: product.style || "Regular",
         description: product.description || "",
         imageUrl: product.imageUrl || ""
       });
     } else {
       setEditingProduct(null);
-      setFormData({ name: "", price: "", stock: "", category: "Girls", ageGroup: "0-1 Yrs", style: "Regular", description: "", imageUrl: "" });
+      setFormData({
+        name: "",
+        price: "",
+        stock: "",
+        category: "Girls",
+        categories: ["Girls"],
+        ageGroup: "0-1 Yrs",
+        ageGroups: ["0-1 Yrs"],
+        style: "Regular",
+        description: "",
+        imageUrl: ""
+      });
     }
     setIsModalOpen(true);
   };
@@ -219,7 +247,13 @@ export default function AdminProducts() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to create category");
       setCategories([...categories, data]);
-      setFormData({ ...formData, category: data.name, style: "Regular" });
+      const updatedCats = Array.from(new Set([...formData.categories, data.name]));
+      setFormData({
+        ...formData,
+        category: data.name,
+        categories: updatedCats,
+        style: "Regular"
+      });
       setQuickCatName("");
       setQuickCatOpen(false);
     } catch (err) {
@@ -230,7 +264,8 @@ export default function AdminProducts() {
   // Quick subcategory creation directly inside modal
   const handleCreateQuickSubcategory = async () => {
     if (!quickSubName.trim()) return;
-    const catObj = categories.find((c) => c.name.toLowerCase() === formData.category.toLowerCase());
+    const targetCat = formData.categories[0] || formData.category;
+    const catObj = categories.find((c) => c.name.toLowerCase() === targetCat.toLowerCase());
     if (!catObj) {
       openAlert("Select Category", "Please select a valid parent category first before adding a subcategory.", "warning");
       return;
@@ -467,8 +502,24 @@ export default function AdminProducts() {
                         </div>
                       </div>
                     </td>
-                    <td className="py-4 px-6 text-gray-600 font-medium">{product.category}</td>
-                    <td className="py-4 px-6 text-gray-600">{product.ageGroup}</td>
+                    <td className="py-4 px-6">
+                      <div className="flex flex-wrap gap-1 max-w-[200px]">
+                        {((product.categories && product.categories.length > 0) ? product.categories : [product.category]).map((c, i) => (
+                          <span key={i} className="inline-block text-[11px] font-semibold px-2 py-0.5 rounded-md bg-pink-50 text-[#ff2b75] border border-pink-100">
+                            {c}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="py-4 px-6">
+                      <div className="flex flex-wrap gap-1 max-w-[200px]">
+                        {((product.ageGroups && product.ageGroups.length > 0) ? product.ageGroups : [product.ageGroup]).map((a, i) => (
+                          <span key={i} className="inline-block text-[11px] font-medium px-2 py-0.5 rounded-md bg-gray-100 text-gray-700 border border-gray-200">
+                            {a}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
                     <td className="py-4 px-6 font-bold text-gray-900">₹{product.price}</td>
                     <td className="py-4 px-6">
                       <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border ${
@@ -657,162 +708,294 @@ export default function AdminProducts() {
                   </div>
 
                   <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm space-y-5">
-                    <h3 className="text-base font-bold text-gray-900 border-b border-gray-100 pb-3">Organization</h3>
+                    <div>
+                      <h3 className="text-base font-bold text-gray-900">Categories & Age Groups</h3>
+                      <p className="text-xs text-gray-500 mt-0.5">Select all categories and age ranges where this product should be available.</p>
+                    </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      {/* Category Selector */}
-                      <div>
-                        <div className="flex items-center justify-between mb-1.5">
-                          <label className="block text-sm font-semibold text-gray-700">Category</label>
+                    {/* 1. Multi-Select Categories */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <label className="block text-sm font-bold text-gray-800">
+                            Categories <span className="text-xs font-medium text-[#ff2b75]">({formData.categories.length} selected)</span>
+                          </label>
+                          <p className="text-[11px] text-gray-500">Tap to select or unselect categories. Product will appear in all selected categories.</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const allCatNames = Array.from(new Set([
+                                "Girls", "Boys", "Newborn",
+                                ...categories.map((c) => c.name),
+                              ]));
+                              setFormData({
+                                ...formData,
+                                categories: allCatNames,
+                                category: allCatNames[0] || "Girls",
+                              });
+                            }}
+                            className="text-xs font-semibold text-gray-600 hover:text-[#ff2b75] transition-colors"
+                          >
+                            Select All
+                          </button>
+                          <span className="text-gray-300">|</span>
                           <button
                             type="button"
                             onClick={() => setQuickCatOpen(!quickCatOpen)}
                             className="text-xs text-[#ff2b75] hover:underline font-semibold flex items-center gap-0.5"
                           >
-                            <Plus className="w-3 h-3" /> New
+                            <Plus className="w-3.5 h-3.5" /> New
                           </button>
                         </div>
-
-                        {quickCatOpen && (
-                          <div className="flex gap-1.5 mb-2">
-                            <input
-                              type="text"
-                              placeholder="New Category..."
-                              value={quickCatName}
-                              onChange={(e) => setQuickCatName(e.target.value)}
-                              className="flex-1 px-2.5 py-1 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary"
-                            />
-                            <button
-                              type="button"
-                              onClick={handleCreateQuickCategory}
-                              className="px-2.5 py-1 bg-[#ff2b75] text-white text-xs rounded-lg font-medium hover:bg-[#e01d62]"
-                            >
-                              Add
-                            </button>
-                          </div>
-                        )}
-
-                        <select
-                          value={formData.category}
-                          onChange={(e) => {
-                            const selected = e.target.value;
-                            const catObj = categories.find((c) => c.name.toLowerCase() === selected.toLowerCase());
-                            const firstSub = catObj?.subcategories?.[0]?.name || "Regular";
-                            setFormData({ ...formData, category: selected, style: firstSub });
-                          }}
-                          className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors font-medium text-gray-700 cursor-pointer text-sm"
-                        >
-                          {categories.length > 0 ? (
-                            categories.map((c) => (
-                              <option key={c.id} value={c.name}>
-                                {c.name}
-                              </option>
-                            ))
-                          ) : (
-                            <>
-                              <option value="Girls">Girls</option>
-                              <option value="Boys">Boys</option>
-                              <option value="Newborn">Newborn</option>
-                            </>
-                          )}
-                        </select>
                       </div>
 
-                      {/* Subcategory / Style Selector */}
-                      <div>
-                        <div className="flex items-center justify-between mb-1.5">
-                          <label className="block text-sm font-semibold text-gray-700">Subcategory</label>
+                      {quickCatOpen && (
+                        <div className="flex gap-1.5 p-2 bg-pink-50/50 rounded-lg border border-pink-100">
+                          <input
+                            type="text"
+                            placeholder="New Category name (e.g. Winter Wear)..."
+                            value={quickCatName}
+                            onChange={(e) => setQuickCatName(e.target.value)}
+                            className="flex-1 px-3 py-1.5 text-xs bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary"
+                          />
                           <button
                             type="button"
-                            onClick={() => setQuickSubOpen(!quickSubOpen)}
-                            className="text-xs text-[#ff2b75] hover:underline font-semibold flex items-center gap-0.5"
+                            onClick={handleCreateQuickCategory}
+                            className="px-3 py-1.5 bg-[#ff2b75] text-white text-xs rounded-lg font-bold hover:bg-[#e01d62] shadow-xs"
                           >
-                            <Plus className="w-3 h-3" /> New
+                            Add
                           </button>
                         </div>
+                      )}
 
-                        {quickSubOpen && (
-                          <div className="flex gap-1.5 mb-2">
-                            <input
-                              type="text"
-                              placeholder="New Subcategory..."
-                              value={quickSubName}
-                              onChange={(e) => setQuickSubName(e.target.value)}
-                              className="flex-1 px-2.5 py-1 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary"
-                            />
-                            <button
-                              type="button"
-                              onClick={handleCreateQuickSubcategory}
-                              className="px-2.5 py-1 bg-[#ff2b75] text-white text-xs rounded-lg font-medium hover:bg-[#e01d62]"
-                            >
-                              Add
-                            </button>
-                          </div>
-                        )}
-
+                      {/* Interactive Category Chips */}
+                      <div className="flex flex-wrap gap-2 p-3 bg-gray-50/80 rounded-xl border border-gray-200">
                         {(() => {
-                          const catObj = categories.find(
-                            (c) => c.name.toLowerCase() === formData.category.toLowerCase()
-                          );
-                          const subList = catObj?.subcategories?.length
-                            ? Array.from(new Set([formData.style, ...catObj.subcategories.map((s) => s.name)]))
-                            : Array.from(new Set([formData.style, "Regular", "Casual", "Party Wear", "Ethnic Wear"]));
+                          const dbCatNames = categories.map((c) => c.name);
+                          const fallbackDefaults = ["Girls", "Boys", "Newborn"];
+                          const allList = Array.from(new Set([...fallbackDefaults, ...dbCatNames, ...formData.categories]));
 
-                          return (
-                            <select
-                              value={formData.style}
-                              onChange={(e) => setFormData({ ...formData, style: e.target.value })}
-                              className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors font-medium text-gray-700 cursor-pointer text-sm"
-                            >
-                              {subList.map((subName) => (
-                                <option key={subName} value={subName}>
-                                  {subName}
-                                </option>
-                              ))}
-                            </select>
-                          );
+                          return allList.map((catName) => {
+                            const isSelected = formData.categories.includes(catName);
+                            return (
+                              <button
+                                key={catName}
+                                type="button"
+                                onClick={() => {
+                                  let updated: string[];
+                                  if (isSelected) {
+                                    if (formData.categories.length === 1) {
+                                      openAlert("Category Required", "At least one category must remain selected.", "warning");
+                                      return;
+                                    }
+                                    updated = formData.categories.filter((c) => c !== catName);
+                                  } else {
+                                    updated = [...formData.categories, catName];
+                                  }
+                                  setFormData({
+                                    ...formData,
+                                    categories: updated,
+                                    category: updated[0] || "Girls",
+                                  });
+                                }}
+                                className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                                  isSelected
+                                    ? "bg-[#ff2b75] text-white shadow-xs scale-102 border border-[#ff2b75]"
+                                    : "bg-white text-gray-700 border border-gray-200 hover:border-gray-300 hover:bg-gray-100/60"
+                                }`}
+                              >
+                                {isSelected ? (
+                                  <Check className="w-3.5 h-3.5 stroke-[3]" />
+                                ) : (
+                                  <span className="w-1.5 h-1.5 rounded-full bg-gray-300" />
+                                )}
+                                <span>{catName}</span>
+                              </button>
+                            );
+                          });
                         })()}
                       </div>
+                    </div>
 
-                      {/* Age Group */}
-                      <div>
-                        <div className="flex items-center justify-between mb-1.5">
-                          <label className="block text-sm font-semibold text-gray-700">Age Group</label>
+                    {/* 2. Multi-Select Age Groups / Sizes */}
+                    <div className="space-y-2 pt-2 border-t border-gray-100">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <label className="block text-sm font-bold text-gray-800">
+                            Available Age Groups / Sizes <span className="text-xs font-medium text-[#ff2b75]">({formData.ageGroups.length} selected)</span>
+                          </label>
+                          <p className="text-[11px] text-gray-500">Select all age ranges suitable for this outfit. Customers can pick their size on product page.</p>
                         </div>
-                        <select
-                          value={formData.ageGroup}
-                          onChange={(e) => setFormData({ ...formData, ageGroup: e.target.value })}
-                          className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors font-medium text-gray-700 cursor-pointer text-sm"
-                        >
-                          {(() => {
-                            const dbOptions = ageRanges.map((r) => r.name);
-                            const fallbackDefaults = [
-                              "0-6 Months",
-                              "6-12 Months",
-                              "0-1 Yrs",
-                              "1-2 Yrs",
-                              "2-3 Yrs",
-                              "3-4 Yrs",
-                              "4-5 Yrs",
-                              "5-6 Yrs",
-                              "1-6 Yrs",
-                            ];
-                            const baseList = dbOptions.length > 0 ? dbOptions : fallbackDefaults;
-                            const uniqueOptions = Array.from(
-                              new Set([
-                                ...baseList,
-                                ...(formData.ageGroup ? [formData.ageGroup] : []),
-                              ])
-                            );
-                            const sortedOptions = sortAgeRanges(uniqueOptions);
-                            return sortedOptions.map((name) => (
-                              <option key={name} value={name}>
-                                {name}
-                              </option>
-                            ));
-                          })()}
-                        </select>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const dbOptions = ageRanges.map((r) => r.name);
+                              const fallbackDefaults = [
+                                "0-6 Months",
+                                "6-12 Months",
+                                "0-1 Yrs",
+                                "1-2 Yrs",
+                                "2-3 Yrs",
+                                "3-4 Yrs",
+                                "4-5 Yrs",
+                                "5-6 Yrs",
+                              ];
+                              const allOptions = sortAgeRanges(Array.from(new Set([...(dbOptions.length > 0 ? dbOptions : fallbackDefaults)])));
+                              setFormData({
+                                ...formData,
+                                ageGroups: allOptions,
+                                ageGroup: allOptions.join(", "),
+                              });
+                            }}
+                            className="text-xs font-semibold text-gray-600 hover:text-[#ff2b75] transition-colors"
+                          >
+                            Select All
+                          </button>
+                          <span className="text-gray-300">|</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (formData.ageGroups.length <= 1) return;
+                              const firstOnly = [formData.ageGroups[0]];
+                              setFormData({
+                                ...formData,
+                                ageGroups: firstOnly,
+                                ageGroup: firstOnly[0],
+                              });
+                            }}
+                            className="text-xs font-semibold text-gray-400 hover:text-gray-600 transition-colors"
+                          >
+                            Reset
+                          </button>
+                        </div>
                       </div>
+
+                      {/* Interactive Age Group Chips */}
+                      <div className="flex flex-wrap gap-2 p-3 bg-gray-50/80 rounded-xl border border-gray-200">
+                        {(() => {
+                          const dbOptions = ageRanges.map((r) => r.name);
+                          const fallbackDefaults = [
+                            "0-6 Months",
+                            "6-12 Months",
+                            "0-1 Yrs",
+                            "1-2 Yrs",
+                            "2-3 Yrs",
+                            "3-4 Yrs",
+                            "4-5 Yrs",
+                            "5-6 Yrs",
+                            "1-6 Yrs",
+                          ];
+                          const baseList = dbOptions.length > 0 ? dbOptions : fallbackDefaults;
+                          const uniqueOptions = Array.from(
+                            new Set([
+                              ...baseList,
+                              ...formData.ageGroups,
+                            ])
+                          );
+                          const sortedOptions = sortAgeRanges(uniqueOptions);
+
+                          return sortedOptions.map((name) => {
+                            const isSelected = formData.ageGroups.includes(name);
+                            return (
+                              <button
+                                key={name}
+                                type="button"
+                                onClick={() => {
+                                  let updated: string[];
+                                  if (isSelected) {
+                                    if (formData.ageGroups.length === 1) {
+                                      openAlert("Age Group Required", "At least one age group / size must remain selected.", "warning");
+                                      return;
+                                    }
+                                    updated = formData.ageGroups.filter((a) => a !== name);
+                                  } else {
+                                    updated = sortAgeRanges([...formData.ageGroups, name]);
+                                  }
+                                  setFormData({
+                                    ...formData,
+                                    ageGroups: updated,
+                                    ageGroup: updated.join(", "),
+                                  });
+                                }}
+                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                                  isSelected
+                                    ? "bg-gray-900 text-white shadow-xs scale-102 border border-gray-900"
+                                    : "bg-white text-gray-700 border border-gray-200 hover:border-gray-300 hover:bg-gray-100/60"
+                                }`}
+                              >
+                                {isSelected ? (
+                                  <Check className="w-3.5 h-3.5 stroke-[3] text-pink-400" />
+                                ) : (
+                                  <span className="w-1.5 h-1.5 rounded-full bg-gray-300" />
+                                )}
+                                <span>{name}</span>
+                              </button>
+                            );
+                          });
+                        })()}
+                      </div>
+                    </div>
+
+                    {/* 3. Subcategory / Style Selector */}
+                    <div className="pt-2 border-t border-gray-100">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="block text-sm font-bold text-gray-800">
+                          Subcategory / Style <span className="text-xs text-gray-400 font-normal">(Pattern / Fit)</span>
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setQuickSubOpen(!quickSubOpen)}
+                          className="text-xs text-[#ff2b75] hover:underline font-semibold flex items-center gap-0.5"
+                        >
+                          <Plus className="w-3 h-3" /> New Subcategory
+                        </button>
+                      </div>
+
+                      {quickSubOpen && (
+                        <div className="flex gap-1.5 mb-2.5 p-2 bg-pink-50/50 rounded-lg border border-pink-100">
+                          <input
+                            type="text"
+                            placeholder="New Subcategory (e.g. Romper, Party Wear)..."
+                            value={quickSubName}
+                            onChange={(e) => setQuickSubName(e.target.value)}
+                            className="flex-1 px-3 py-1.5 text-xs bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleCreateQuickSubcategory}
+                            className="px-3 py-1.5 bg-[#ff2b75] text-white text-xs rounded-lg font-bold hover:bg-[#e01d62] shadow-xs"
+                          >
+                            Add
+                          </button>
+                        </div>
+                      )}
+
+                      {(() => {
+                        const selectedCatObjs = categories.filter((c) =>
+                          formData.categories.some((sel) => sel.toLowerCase() === c.name.toLowerCase())
+                        );
+                        const collectedSubs = selectedCatObjs.flatMap((c) => c.subcategories.map((s) => s.name));
+                        const subList = collectedSubs.length > 0
+                          ? Array.from(new Set([formData.style, ...collectedSubs]))
+                          : Array.from(new Set([formData.style, "Regular", "Casual", "Party Wear", "Ethnic Wear"]));
+
+                        return (
+                          <select
+                            value={formData.style}
+                            onChange={(e) => setFormData({ ...formData, style: e.target.value })}
+                            className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors font-medium text-gray-700 cursor-pointer text-sm"
+                          >
+                            {subList.map((subName) => (
+                              <option key={subName} value={subName}>
+                                {subName}
+                              </option>
+                            ))}
+                          </select>
+                        );
+                      })()}
                     </div>
                   </div>
                 </div>

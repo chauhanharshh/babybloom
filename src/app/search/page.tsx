@@ -15,7 +15,15 @@ const RECENT_SEARCHES = ["frock", "dress", "boy set", "hoodie", "romper"];
 
 export default function SearchPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-white flex flex-col pb-24 md:pb-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 sm:py-8 w-full flex-1">
+            <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Search Collection</h1>
+          </div>
+        </main>
+      }
+    >
       <SearchPageContent />
     </Suspense>
   );
@@ -44,7 +52,9 @@ function SearchPageContent() {
               mrp: Math.round(p.price * 1.5),
               imageUrl: p.imageUrl || "",
               ageGroup: p.ageGroup,
+              ageGroups: p.ageGroups,
               category: p.category,
+              categories: p.categories,
             }))
           );
         }
@@ -56,12 +66,16 @@ function SearchPageContent() {
   const searchResults = useMemo(() => {
     if (!query.trim()) return products;
     const lower = query.toLowerCase().trim();
-    return products.filter(
-      (p) =>
-        p.name.toLowerCase().includes(lower) ||
+    return products.filter((p) => {
+      const matchName = p.name.toLowerCase().includes(lower);
+      const matchCategory =
         (p.category && p.category.toLowerCase().includes(lower)) ||
-        (p.ageGroup && p.ageGroup.toLowerCase().includes(lower))
-    );
+        (Array.isArray(p.categories) && p.categories.some((c) => c.toLowerCase().includes(lower)));
+      const matchAge =
+        (p.ageGroup && p.ageGroup.toLowerCase().includes(lower)) ||
+        (Array.isArray(p.ageGroups) && p.ageGroups.some((a) => a.toLowerCase().includes(lower)));
+      return matchName || matchCategory || matchAge;
+    });
   }, [query, products]);
 
   return (
@@ -105,8 +119,8 @@ function SearchPageContent() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 sm:py-8 w-full flex-1 space-y-4">
-        {/* Desktop Title Header */}
-        <div className="hidden md:flex items-center justify-between mb-4 pb-4 border-b border-gray-100">
+        {/* Desktop Title Header (Single H1 in DOM across mobile & desktop) */}
+        <div className="sr-only md:not-sr-only md:flex items-center justify-between mb-4 pb-4 border-b border-gray-100">
           <div>
             <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Search Collection</h1>
             <p className="text-xs text-gray-500 mt-1">Find trendy clothes, party wear & everyday essentials for kids</p>

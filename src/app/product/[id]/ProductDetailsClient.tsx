@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import LazyImage from "@/components/LazyImage";
@@ -19,7 +19,8 @@ import {
   ChevronUp, 
   Sparkles,
   Ruler,
-  Check
+  Check,
+  Tag
 } from "lucide-react";
 import { useCart, Product } from "@/context/CartContext";
 import MobileBottomNav from "@/components/MobileBottomNav";
@@ -31,12 +32,33 @@ interface ProductDetailsClientProps {
   product: Product & { mrp?: number; description?: string | null };
 }
 
-const SIZES = ["0-6M", "6-12M", "1-2Y", "2-3Y", "3-4Y", "4-5Y"];
-
 export default function ProductDetailsClient({ product }: ProductDetailsClientProps) {
   const router = useRouter();
   const { addToCart, toggleWishlist, isInWishlist, totalItems } = useCart();
-  const [selectedSize, setSelectedSize] = useState("1-2Y");
+
+  const availableAgeGroups = useMemo(() => {
+    if (Array.isArray(product.ageGroups) && product.ageGroups.length > 0) {
+      return product.ageGroups.filter(Boolean);
+    }
+    if (product.ageGroup) {
+      return product.ageGroup.split(",").map((s) => s.trim()).filter(Boolean);
+    }
+    return ["Standard"];
+  }, [product.ageGroups, product.ageGroup]);
+
+  const allCategories = useMemo(() => {
+    if (Array.isArray(product.categories) && product.categories.length > 0) {
+      return product.categories.filter(Boolean);
+    }
+    if (product.category) {
+      return [product.category.trim()];
+    }
+    return [];
+  }, [product.categories, product.category]);
+
+  const [selectedSize, setSelectedSize] = useState(
+    () => availableAgeGroups[0] || "Standard"
+  );
   const [quantity, setQuantity] = useState(1);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [openAccordion, setOpenAccordion] = useState<string | null>("details");
@@ -51,7 +73,7 @@ export default function ProductDetailsClient({ product }: ProductDetailsClientPr
 
   const handleAddToCart = () => {
     for (let i = 0; i < quantity; i++) {
-      addToCart(product, `${selectedSize} / Standard`);
+      addToCart(product, selectedSize);
     }
     setAddedToast(true);
     setTimeout(() => setAddedToast(false), 4000);
@@ -59,7 +81,7 @@ export default function ProductDetailsClient({ product }: ProductDetailsClientPr
 
   const handleBuyNow = () => {
     for (let i = 0; i < quantity; i++) {
-      addToCart(product, `${selectedSize} / Standard`);
+      addToCart(product, selectedSize);
     }
     router.push("/checkout");
   };
@@ -210,6 +232,21 @@ export default function ProductDetailsClient({ product }: ProductDetailsClientPr
           <div className="p-4 sm:p-6 md:p-0 space-y-4">
           {/* Title & Price Header */}
           <div>
+            {allCategories.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                {allCategories.map((cat) => (
+                  <Link
+                    key={cat}
+                    href={`/category/${encodeURIComponent(cat.toLowerCase().replace(/\s+/g, "-"))}`}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-pink-50 text-[#ff2b75] border border-pink-100 hover:bg-pink-100 transition-colors"
+                  >
+                    <Tag size={10} />
+                    <span>{cat}</span>
+                  </Link>
+                ))}
+              </div>
+            )}
+
             <h1 className="text-lg sm:text-2xl font-extrabold text-gray-900 tracking-tight leading-snug">
               {product.name}
             </h1>
@@ -241,10 +278,13 @@ export default function ProductDetailsClient({ product }: ProductDetailsClientPr
 
           <hr className="border-gray-100" />
 
-          {/* Select Size Section */}
+          {/* Select Size / Age Group Section */}
           <div>
             <div className="flex justify-between items-center mb-2.5">
-              <span className="text-xs sm:text-sm font-extrabold text-gray-900">Select Size</span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs sm:text-sm font-extrabold text-gray-900">Select Age / Size:</span>
+                <span className="text-xs font-bold text-[#ff2b75]">{selectedSize}</span>
+              </div>
               <button
                 type="button"
                 className="text-xs font-bold text-[#ff2b75] flex items-center gap-1 hover:underline"
@@ -254,9 +294,9 @@ export default function ProductDetailsClient({ product }: ProductDetailsClientPr
               </button>
             </div>
 
-            {/* Size Pills */}
+            {/* Age Group Pills */}
             <div className="flex flex-wrap gap-2">
-              {SIZES.map((size) => {
+              {availableAgeGroups.map((size) => {
                 const isSelected = selectedSize === size;
                 return (
                   <button
@@ -265,8 +305,8 @@ export default function ProductDetailsClient({ product }: ProductDetailsClientPr
                     onClick={() => setSelectedSize(size)}
                     className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
                       isSelected
-                        ? "bg-pink-50 border-2 border-[#ff2b75] text-[#ff2b75] shadow-xs"
-                        : "bg-white border border-gray-200 text-gray-700 hover:border-gray-400"
+                        ? "bg-pink-50 border-2 border-[#ff2b75] text-[#ff2b75] shadow-xs scale-102"
+                        : "bg-white border border-gray-200 text-gray-700 hover:border-gray-400 hover:text-gray-900"
                     }`}
                   >
                     {size}

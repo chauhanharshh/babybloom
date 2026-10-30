@@ -8,7 +8,9 @@ export interface Product {
   price: number;
   imageUrl: string;
   ageGroup: string;
+  ageGroups?: string[];
   category?: string;
+  categories?: string[];
   description?: string | null;
   mrp?: number;
 }

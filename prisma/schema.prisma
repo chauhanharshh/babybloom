@@ -1,3 +1,4 @@
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
@@ -14,7 +15,9 @@ model Product {
   price       Float
   stock       Int         @default(0)
   category    String      @default("Girls")
+  categories  String[]    @default([])
   ageGroup    String      @default("0-1 Yrs")
+  ageGroups   String[]    @default([])
   style       String      @default("Regular")
   imageUrl    String?
   createdAt   DateTime    @default(now())
@@ -98,6 +101,7 @@ model StoreProfile {
   storeName          String   @default("Baby Bloom")
   tagline            String?  @default("Everyday outfits for your little trendsetters")
   ownerName          String?  @default("Baby Bloom Store")
+  gstNumber          String?  @default("")
   phone              String   @default("+91 95200 42719")
   whatsappNumber     String   @default("919520042719")
   email              String   @default("babybloom.bb2024@gmail.com")
@@ -133,6 +137,29 @@ model AgeRange {
   order     Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Invoice {
+  id              Int      @id @default(autoincrement())
+  invoiceNumber   String   @unique
+  orderId         Int      @unique
+  customerName    String
+  customerEmail   String?  @default("")
+  customerPhone   String?  @default("")
+  customerAddress String?  @default("")
+  paymentMethod   String?  @default("COD")
+  storeName       String   @default("Baby Bloom")
+  storeGstNumber  String?  @default("")
+  storeAddress    String?  @default("")
+  storePhone      String?  @default("")
+  storeEmail      String?  @default("")
+  subtotal        Float    @default(0)
+  cgstAmount      Float    @default(0)
+  sgstAmount      Float    @default(0)
+  totalTax        Float    @default(0)
+  grandTotal      Float    @default(0)
+  itemsJson       String   @default("[]")
+  createdAt       DateTime @default(now())
 }
 
 

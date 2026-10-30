@@ -73,8 +73,8 @@ export default function CartPage() {
       </div>
 
       <div className="max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-3 sm:py-8 flex-1">
-        {/* Desktop Header */}
-        <div className="hidden md:flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
+        {/* Desktop Header (Single H1 in DOM across mobile & desktop) */}
+        <div className="sr-only md:not-sr-only md:flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
           <div>
             <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">
               My Cart <span className="text-gray-500 font-semibold text-xl">({totalItems} Items)</span>
@@ -113,9 +113,9 @@ export default function CartPage() {
             <div className="lg:col-span-7 space-y-3.5">
               {/* Mobile Title Row: "My Cart (X Items)" & "Clear Cart" - Matches Mockup Exactly */}
               <div className="flex md:hidden justify-between items-center pt-2 pb-1">
-                <h1 className="text-base font-extrabold text-gray-900 tracking-tight">
+                <p className="text-base font-extrabold text-gray-900 tracking-tight">
                   My Cart <span className="font-semibold text-gray-500">({totalItems} Items)</span>
-                </h1>
+                </p>
                 {cart.length > 0 && (
                   <button
                     type="button"

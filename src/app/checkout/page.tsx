@@ -145,9 +145,15 @@ export default function CheckoutPage() {
       return;
     }
 
-    // Require address before placing order
-    if (!address.name.trim() || !address.phone.trim() || !address.line1.trim() || !address.cityStateZip.trim()) {
-      alert("Please enter your complete delivery address before placing your order.");
+    // Require address & email before placing order
+    if (
+      !address.name.trim() ||
+      !address.email.trim() ||
+      !address.phone.trim() ||
+      !address.line1.trim() ||
+      !address.cityStateZip.trim()
+    ) {
+      alert("Please enter your complete delivery address and email address before placing your order.");
       setIsAddressModalOpen(true);
       return;
     }
@@ -228,7 +234,7 @@ export default function CheckoutPage() {
           >
             <ChevronLeft size={24} />
           </button>
-          <h1 className="text-base font-extrabold text-gray-900 tracking-tight">Checkout</h1>
+          <span className="text-base font-extrabold text-gray-900 tracking-tight">Checkout</span>
         </div>
 
         {/* Small Babybloom branding on right */}
@@ -246,8 +252,8 @@ export default function CheckoutPage() {
       </div>
 
       <div className="max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-4 sm:py-8 flex-1">
-        {/* Desktop Page Title */}
-        <div className="hidden md:flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
+        {/* Desktop Page Title (Single H1 in DOM across mobile & desktop) */}
+        <div className="sr-only md:not-sr-only md:flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
           <div>
             <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Checkout</h1>
             <p className="text-xs text-gray-500 mt-1">Review your delivery address, select a payment method and place your order</p>
@@ -823,11 +829,12 @@ function AddressModal({ isOpen, initialAddress, onSave, onClose }: AddressModalP
     e.preventDefault();
     if (
       !formData.name.trim() ||
+      !formData.email.trim() ||
       !formData.phone.trim() ||
       !formData.line1.trim() ||
       !formData.cityStateZip.trim()
     ) {
-      alert("Please fill in Full Name, Phone, Address, and City/Pincode.");
+      alert("Please fill in Full Name, Email Address, Phone, Address, and City/Pincode.");
       return;
     }
     onSave(formData);
@@ -877,10 +884,13 @@ function AddressModal({ isOpen, initialAddress, onSave, onClose }: AddressModalP
           </div>
 
           <div>
-            <label className="text-[11px] font-bold text-gray-600 block mb-1">Email Address</label>
+            <label className="text-[11px] font-bold text-gray-600 block mb-1">
+              Email Address (For Order Approval Mail) *
+            </label>
             <input
               type="email"
-              placeholder="e.g. rahul@example.com (Optional)"
+              required
+              placeholder="e.g. rahul@example.com"
               value={formData.email}
               onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
               className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#ff2b75]"

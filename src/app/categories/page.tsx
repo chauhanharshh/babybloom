@@ -1,12 +1,25 @@
-"use client";
-
+import type { Metadata } from "next";
 import Navbar from "@/components/Navbar";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import CartDrawer from "@/components/CartDrawer";
 import Footer from "@/components/Footer";
 import LazyImage from "@/components/LazyImage";
 import Link from "next/link";
-import { useState } from "react";
+
+export const metadata: Metadata = {
+  title: "Shop by Category & Age – Baby & Kids Clothing",
+  description:
+    "Explore BabyBloom kids clothing by category and age group (0–6 months to 6 years). Find newborn rompers, girls frocks, boys sets, sweatshirts, jeans, and innerwear.",
+  alternates: {
+    canonical: "/categories",
+  },
+  openGraph: {
+    title: "Shop by Category & Age – Baby & Kids Clothing | BabyBloom",
+    description:
+      "Explore BabyBloom kids clothing by category and age group. Newborn rompers, girls frocks, boys sets & innerwear.",
+    url: "/categories",
+  },
+};
 
 const CATEGORIES = [
   {
@@ -67,11 +80,18 @@ const CATEGORIES = [
   },
 ];
 
-const AGE_GROUPS = ["0-6M", "6-12M", "1-3Y", "3-5Y", "5-9Y"];
+const AGE_GROUPS = [
+  "0-6 Months",
+  "6-12 Months",
+  "0-1 Yrs",
+  "1-2 Yrs",
+  "2-3 Yrs",
+  "3-4 Yrs",
+  "4-5 Yrs",
+  "5-6 Yrs",
+];
 
 export default function CategoriesPage() {
-  const [selectedAge, setSelectedAge] = useState<string | null>(null);
-
   return (
     <main className="min-h-screen bg-white flex flex-col pb-20 md:pb-8">
       <Navbar />
@@ -126,23 +146,15 @@ export default function CategoriesPage() {
             Shop by Age
           </h2>
           <div className="flex flex-wrap gap-2.5">
-            {AGE_GROUPS.map((age) => {
-              const isSelected = selectedAge === age;
-              return (
-                <button
-                  key={age}
-                  type="button"
-                  onClick={() => setSelectedAge(isSelected ? null : age)}
-                  className={`px-4 py-2 rounded-full text-xs font-bold transition-all shadow-xs ${
-                    isSelected
-                      ? "bg-[#ff2b75] text-white border border-[#ff2b75]"
-                      : "bg-white text-gray-700 border border-gray-200 hover:border-[#ff2b75] hover:text-[#ff2b75]"
-                  }`}
-                >
-                  {age}
-                </button>
-              );
-            })}
+            {AGE_GROUPS.map((age) => (
+              <Link
+                key={age}
+                href={`/search?q=${encodeURIComponent(age)}`}
+                className="px-4 py-2 rounded-full text-xs font-bold transition-all shadow-xs bg-white text-gray-700 border border-gray-200 hover:border-[#ff2b75] hover:text-[#ff2b75] hover:bg-pink-50/50"
+              >
+                {age}
+              </Link>
+            ))}
           </div>
         </div>
       </div>

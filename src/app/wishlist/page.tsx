@@ -60,22 +60,18 @@ export default function WishlistPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 w-full flex-1">
-        {/* Desktop Title Header */}
-        <div className="hidden md:flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
+        {/* Single H1 Header across Mobile & Desktop */}
+        <div className="flex items-center justify-between mb-3 md:mb-6 md:pb-4 md:border-b md:border-gray-100">
           <div>
-            <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">My Wishlist</h1>
-            <p className="text-xs text-gray-500 mt-1">Saved favorites for your little trendsetter</p>
+            <h1 className="text-base md:text-2xl font-extrabold text-gray-900 tracking-tight">
+              My Wishlist{" "}
+              <span className="font-semibold text-gray-500 md:hidden">({wishlist.length} Items)</span>
+            </h1>
+            <p className="hidden md:block text-xs text-gray-500 mt-1">Saved favorites for your little trendsetter</p>
           </div>
-          <span className="bg-pink-50 text-[#ff2b75] font-bold text-xs px-3 py-1 rounded-full">
+          <span className="hidden md:inline-block bg-pink-50 text-[#ff2b75] font-bold text-xs px-3 py-1 rounded-full">
             {wishlist.length} Items Saved
           </span>
-        </div>
-
-        {/* Mobile Title */}
-        <div className="md:hidden mb-3">
-          <h1 className="text-base font-extrabold text-gray-900 tracking-tight">
-            My Wishlist <span className="font-semibold text-gray-500">({wishlist.length} Items)</span>
-          </h1>
         </div>
 
         {wishlist.length === 0 ? (

@@ -146,16 +146,21 @@ export async function getAgeRangesWithCounts(): Promise<AgeRangeItem[]> {
       ranges = await dbGetAllAgeRanges();
     }
 
-    // Get product count per ageGroup
-    const counts = await prisma.product.groupBy({
-      by: ["ageGroup"],
-      _count: { id: true },
+    // Get product count per ageGroup (including multi-ageGroup products)
+    const products = await prisma.product.findMany({
+      select: { ageGroup: true, ageGroups: true },
     });
 
     const countMap: Record<string, number> = {};
-    for (const c of counts) {
-      if (c.ageGroup) {
-        countMap[c.ageGroup.trim().toLowerCase()] = c._count.id;
+    for (const p of products) {
+      const allAges = (p.ageGroups && p.ageGroups.length > 0)
+        ? p.ageGroups
+        : (p.ageGroup ? [p.ageGroup] : []);
+      for (const a of allAges) {
+        if (a) {
+          const key = a.trim().toLowerCase();
+          countMap[key] = (countMap[key] || 0) + 1;
+        }
       }
     }
 

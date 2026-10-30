@@ -1,7 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Check, X, Clock, ChevronDown, ChevronUp, RefreshCw, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { Check, X, Clock, ChevronDown, ChevronUp, RefreshCw, Trash2, FileText } from "lucide-react";
+import { ADMIN_BASE_PATH } from "@/lib/admin";
+import { formatInvoiceNumber } from "@/lib/invoices";
 
 interface OrderItem {
   id: number;
@@ -39,6 +42,7 @@ export default function AdminOrders() {
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [updating, setUpdating] = useState<number | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -61,15 +65,29 @@ export default function AdminOrders() {
 
   const updateStatus = async (id: number, status: "approved" | "rejected") => {
     setUpdating(id);
-    await fetch(`/api/orders/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
-    });
-    setOrders((prev) =>
-      prev.map((o) => (o.id === id ? { ...o, status } : o))
-    );
-    setUpdating(null);
+    try {
+      const res = await fetch(`/api/orders/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      const data = await res.json();
+      setOrders((prev) =>
+        prev.map((o) => (o.id === id ? { ...o, status } : o))
+      );
+      if (status === "approved") {
+        const targetOrder = orders.find((o) => o.id === id);
+        const invText = data?.invoiceNumber ? ` (Invoice: ${data.invoiceNumber})` : "";
+        if (data?.customerEmailSent && targetOrder?.customerEmail) {
+          setToastMessage(`Order #${id} approved${invText}! GST Invoice emailed to ${targetOrder.customerEmail}.`);
+        } else {
+          setToastMessage(`Order #${id} approved${invText}!`);
+        }
+        setTimeout(() => setToastMessage(null), 5000);
+      }
+    } finally {
+      setUpdating(null);
+    }
   };
 
   const deleteOrder = async (id: number) => {
@@ -153,6 +171,13 @@ export default function AdminOrders() {
         </div>
       </div>
 
+      {toastMessage && (
+        <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-2 text-emerald-800 text-xs sm:text-sm font-semibold animate-in fade-in">
+          <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
       {loading ? (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center text-gray-400">
           Loading orders...
@@ -178,6 +203,11 @@ export default function AdminOrders() {
                   <div>
                     <p className="font-bold text-gray-900">Order #{order.id}</p>
                     <p className="text-xs sm:text-sm text-gray-500">{formatDate(order.createdAt)}</p>
+                    {order.status === "approved" && (
+                      <p className="text-[11px] font-mono font-bold text-[#ff2b75] mt-0.5">
+                        {formatInvoiceNumber(order.id, order.createdAt)}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-700">{order.customerName}</p>
@@ -196,6 +226,19 @@ export default function AdminOrders() {
                     <p className="font-bold text-gray-900">₹{order.total.toFixed(0)}</p>
                     {getStatusBadge(order.status)}
                   </div>
+
+                  {/* View GST Invoice button for Approved Orders */}
+                  {order.status === "approved" && (
+                    <Link
+                      href={`${ADMIN_BASE_PATH}/invoices?orderId=${order.id}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="flex items-center gap-1 px-3 py-1.5 bg-pink-50 hover:bg-pink-100 text-[#ff2b75] rounded-lg text-xs font-bold transition-colors border border-pink-100"
+                      title="View GST Tax Invoice"
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">GST Invoice</span>
+                    </Link>
+                  )}
 
                   {/* Approve / Reject */}
                   {order.status === "pending" && (

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Navbar from "@/components/Navbar";
 import ProductCard from "@/components/ProductCard";
 import CartDrawer from "@/components/CartDrawer";
@@ -20,6 +21,21 @@ import {
 } from "lucide-react";
 
 export const revalidate = 0; // Fresh inventory data
+
+export const metadata: Metadata = {
+  title: "BabyBloom | Premium Baby & Kids Wear Online in India (0–9 Years)",
+  description:
+    "Shop adorable, comfortable & breathable baby and kids wear online at BabyBloom. Explore newborn rompers, girls frocks, boys sets & party wear with free shipping above ₹999.",
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: "BabyBloom | Premium Baby & Kids Wear Online in India (0–9 Years)",
+    description:
+      "Shop adorable, comfortable & breathable baby and kids wear online at BabyBloom. Explore newborn rompers, girls frocks, boys sets & party wear.",
+    url: "/",
+  },
+};
 
 export default async function Home() {
   // Fetch latest products, active hero banners, active offers, and categories
@@ -71,13 +87,16 @@ export default async function Home() {
 
   // Display DB products directly with active offers dynamically applied
   const displayProducts = dbProducts.map((p) => {
-    const offer = calculateProductOffer(p.id, p.category, p.price, activeOffers);
+    const offer = calculateProductOffer(p.id, p.category, p.price, activeOffers, p.categories);
     return {
       id: p.id.toString(),
       name: p.name,
       price: offer.price,
       imageUrl: p.imageUrl || "",
       ageGroup: p.ageGroup,
+      ageGroups: p.ageGroups,
+      category: p.category,
+      categories: p.categories,
       mrp: offer.mrp,
       discountPercent: offer.discountPercent,
       offerTitle: offer.appliedOffer?.title,
@@ -109,6 +128,11 @@ export default async function Home() {
     <main className="min-h-screen bg-white flex flex-col pb-16 md:pb-0">
       <Navbar />
       <CartDrawer />
+
+      {/* Primary SEO H1 Heading (Single H1 for Home Page) */}
+      <h1 className="sr-only">
+        BabyBloom – Premium Baby &amp; Kids Wear Online Store in India
+      </h1>
 
       {/* 1. Babybloom Hero Banner Slider (Live dynamic banners from Admin Panel / DB) */}
       {heroBanners.length > 0 && <HeroSlider banners={heroBanners} />}

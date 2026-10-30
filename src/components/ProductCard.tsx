@@ -58,11 +58,19 @@ export default function ProductCard({ product }: ProductCardProps) {
         </button>
 
         {/* Age tag if available */}
-        {product.ageGroup && (
-          <div className="absolute bottom-2 left-2 z-10 bg-white/90 backdrop-blur-xs px-2 py-0.5 rounded-full text-[9px] font-bold text-[#ff2b75] shadow-xs pointer-events-none">
-            {product.ageGroup}
-          </div>
-        )}
+        {(() => {
+          const displayAge = product.ageGroups && product.ageGroups.length > 0
+            ? (product.ageGroups.length > 2
+                ? `${product.ageGroups[0]} +${product.ageGroups.length - 1} sizes`
+                : product.ageGroups.join(", "))
+            : product.ageGroup;
+          if (!displayAge) return null;
+          return (
+            <div className="absolute bottom-2 left-2 z-10 bg-white/95 backdrop-blur-xs px-2 py-0.5 rounded-full text-[9px] font-bold text-[#ff2b75] shadow-xs pointer-events-none max-w-[80%] truncate">
+              {displayAge}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Product Info (Links to Details) */}

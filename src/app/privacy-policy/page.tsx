@@ -1,3 +1,20 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Privacy Policy – How We Protect Your Data",
+  description:
+    "Read BabyBloom's Privacy Policy to learn how we collect, use, and safeguard your personal information when you shop for baby and kids clothing online.",
+  alternates: {
+    canonical: "/privacy-policy",
+  },
+  openGraph: {
+    title: "Privacy Policy | BabyBloom",
+    description:
+      "Read BabyBloom's Privacy Policy to learn how we collect, use, and safeguard your personal information.",
+    url: "/privacy-policy",
+  },
+};
+
 export default function PrivacyPolicyPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 min-h-[60vh]">

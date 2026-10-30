@@ -14,9 +14,64 @@ const greatVibes = Great_Vibes({
   variable: "--font-great-vibes",
 });
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://babybloom.in";
+
 export const metadata: Metadata = {
-  title: "Baby Bloom | Premium Baby & Kids Wear",
-  description: "Everyday outfits for your little trendsetters. Clothes for 1-6 years.",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "BabyBloom | Premium Baby & Kids Wear Online in India",
+    template: "%s | BabyBloom",
+  },
+  description:
+    "Shop adorable, comfortable & hypoallergenic baby and kids clothing online at BabyBloom. Everyday outfits, party wear, rompers & sets for newborns to 9 years.",
+  keywords: [
+    "baby clothes online india",
+    "kids wear",
+    "newborn baby clothes",
+    "girls frocks",
+    "boys ethnic wear",
+    "baby rompers",
+    "BabyBloom",
+    "children clothing store",
+  ],
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    type: "website",
+    locale: "en_IN",
+    url: SITE_URL,
+    siteName: "BabyBloom",
+    title: "BabyBloom | Premium Baby & Kids Wear Online in India",
+    description:
+      "Everyday outfits & special occasion wear for your little trendsetters (0 to 9 years). Soft organic cotton fabrics with free shipping above ₹999.",
+    images: [
+      {
+        url: "/images/banners/babybloom-hero-banner.png",
+        width: 1200,
+        height: 630,
+        alt: "BabyBloom Kids Fashion Store",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "BabyBloom | Premium Baby & Kids Wear Online in India",
+    description:
+      "Shop trendy, soft & comfortable clothing for newborns, baby girls, and boys at BabyBloom.",
+    images: ["/images/banners/babybloom-hero-banner.png"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
   icons: {
     icon: [
       { url: "/icons/favicon.ico" },
